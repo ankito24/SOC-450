@@ -4,6 +4,8 @@
 **A life-course strategy game set in India**  
 Group 12 · Track 6: Simulation or Game
 
+## Link to the game: https://ankito24.github.io/SOC-450/Bounded_Agency_V5_Random_or_Manual.html
+
 ## About the Game
 
 **Bounded Agency** is an interactive life-course strategy game that explores how a person's birth circumstances shape their opportunities, choices, and outcomes throughout life.
