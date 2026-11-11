@@ -1,0 +1,1516 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Bounded Agency</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one calm column on a paper-blue ground; the board is a stack of cards, stat bars always at the top of a turn. */
+:root{
+ --bg:#eceff5;--surface:#fbfcfe;--ink:#161b33;--ink2:#454c68;--ink3:#6c7390;--line:#d3d8e4;--accent:#2b3a8f;--accent-ink:#ffffff;
+ --warn:#b4372a;--good:#1f7a5a;--wash:#e3e8f3;
+ --w:#9a6a12;--h:#1f7a5a;--e:#2f55c9;--t:#a8307a;
+ --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;--f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;--f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --bg:#0f1220;--surface:#171b2e;--ink:#e8ebf7;--ink2:#a9b0cc;--ink3:#8b92b0;--line:#2a3050;--accent:#8da0ff;--accent-ink:#0f1220;
+ --warn:#ff8a78;--good:#59d3a1;--wash:#1f2440;--w:#e0b050;--h:#59d3a1;--e:#8fa8ff;--t:#f08cc6;color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0f1220;--surface:#171b2e;--ink:#e8ebf7;--ink2:#a9b0cc;--ink3:#8b92b0;--line:#2a3050;--accent:#8da0ff;--accent-ink:#0f1220;
+ --warn:#ff8a78;--good:#59d3a1;--wash:#1f2440;--w:#e0b050;--h:#59d3a1;--e:#8fa8ff;--t:#f08cc6;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:20px 56px}
+#app{max-width:980px;margin-inline:auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.5rem;font-weight:700}h3{font-size:1.1rem;font-weight:700}
+p{margin:0}.muted{color:var(--ink2)}.small{font-size:.85rem}.mono{font-family:var(--f-mono)}
+.eyebrow{font:500 .72rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.grow{flex:1;min-width:0}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+button{font:600 .95rem var(--f-body);color:var(--ink);background:var(--wash);border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer;text-align:left}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);text-align:center}
+button[disabled]{opacity:.45;cursor:not-allowed}
+input[type=text],select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;max-width:100%}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font:800 1rem var(--f-display);letter-spacing:-.01em}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:500 .74rem var(--f-mono);padding:3px 8px;border-radius:999px;background:var(--wash);color:var(--ink2);border:1px solid var(--line);white-space:nowrap}
+.chip.bad{color:var(--warn);border-color:var(--warn);background:transparent}
+.chip.good{color:var(--good);border-color:var(--good);background:transparent}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:70px 1fr 64px;gap:10px;align-items:center;font-size:.85rem}
+.bar .track{height:10px;background:var(--wash);border-radius:3px;position:relative;overflow:hidden}
+.bar .fill{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.bar .num{font:500 .85rem var(--f-mono);text-align:right}
+.bar .d{font-size:.75rem}
+.W{--c:var(--w)}.H{--c:var(--h)}.E{--c:var(--e)}.T{--c:var(--t)}
+.fill{background:var(--c)}
+.delta{font:500 .78rem var(--f-mono);padding:2px 7px;border-radius:4px;border:1px solid var(--c,var(--line));color:var(--ink)}
+.delta.neg{border-style:dashed}
+.acard{display:flex;flex-direction:column;gap:8px;padding:12px}
+.acard .t{font:700 1rem var(--f-display)}
+.acard .eff{display:flex;gap:5px;flex-wrap:wrap}
+.acard .mods{display:flex;gap:4px;flex-wrap:wrap}
+.mod{font:500 .7rem var(--f-mono);color:var(--warn)}
+.mod.up{color:var(--good)}
+.slots{display:flex;gap:8px;flex-wrap:wrap}
+.slot{min-width:110px;padding:8px 12px;border:1.5px dashed var(--line);border-radius:8px;font-size:.85rem;color:var(--ink3)}
+.slot.f{border-style:solid;border-color:var(--accent);color:var(--ink);background:var(--wash)}
+.era{border-left:4px solid var(--accent);padding-left:14px}
+.lvl{font:500 .7rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.evt{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.choice{display:flex;flex-direction:column;gap:2px}
+.choice small{font-weight:400;color:var(--ink2)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;vertical-align:top}
+th{font:500 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.scroll{overflow-x:auto;max-width:100%}
+.hero{display:grid;gap:20px;grid-template-columns:1.2fr 1fr;align-items:center}
+@media(max-width:720px){.hero{grid-template-columns:1fr}}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi b{font:800 1.9rem var(--f-display)}
+.odds{display:grid;gap:8px}
+.odds .o{display:grid;grid-template-columns:130px 1fr 48px;gap:10px;align-items:center;font-size:.85rem}
+.odds .track{height:12px;background:var(--wash);border-radius:3px;position:relative}
+.odds .fill{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--accent)}
+.odds .you .fill{background:var(--warn)}
+.svgc text{font:11px var(--f-mono);fill:var(--ink3)}
+.svgc .ax{stroke:var(--line);stroke-width:1}
+.svgc .lbl{fill:var(--ink2)}
+svg{max-width:100%;height:auto}
+.sr{position:absolute;left:-9999px}
+.fade{animation:fade .35s ease both}
+@keyframes fade{from{opacity:.0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.fade{animation:none}}
+.pol{display:flex;flex-direction:column;gap:6px;padding:12px}
+.pol .row{align-items:flex-start;flex-wrap:nowrap}.pol.on{border-color:var(--good)}
+.tag{font:500 .7rem var(--f-mono);color:var(--ink3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--ink2)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.round-player{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:9px 0;background:var(--wash)}
+.round-player summary{cursor:pointer;line-height:1.5}.round-player-body{padding-top:10px}.round-graph{display:flex;flex-direction:column;gap:8px;margin:12px 0 18px}.round-g-row{display:grid;grid-template-columns:68px minmax(80px,1fr) 48px;gap:8px;align-items:center;font-size:13px}.round-g-track{height:13px;position:relative;background:var(--line);border-radius:5px;overflow:hidden}.round-g-zero{position:absolute;left:50%;top:0;height:100%;width:1px;background:var(--muted)}.round-g-bar{position:absolute;top:1px;height:11px;border-radius:3px}.round-g-bar.pos{background:var(--good)}.round-g-bar.neg{background:var(--warn)}.round-g-row>b{text-align:right;font-variant-numeric:tabular-nums}.round-drivers{padding-left:20px;margin:8px 0;display:flex;flex-direction:column;gap:8px}.round-drivers li{line-height:1.5;font-size:13px}.round-player h4{margin:8px 0}
+
+/* Visual refresh: warm, editorial game-board styling with lightweight motion. */
+:root{--bg:#f4f1e9;--surface:#fffdf8;--ink:#20243a;--ink2:#596078;--ink3:#747b91;--line:#e2dccf;--accent:#4d5bd4;--accent-ink:#fff;--warn:#c44e3f;--good:#19856d;--wash:#efecff;--w:#c28a28;--h:#209b7b;--e:#5869dc;--t:#cb5b9b}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101426;--surface:#191f35;--ink:#f2f3fb;--ink2:#b4bdd5;--ink3:#8994b5;--line:#2c3554;--accent:#9ba7ff;--accent-ink:#151a2b;--warn:#ff8978;--good:#62d9b1;--wash:#242a49;--w:#f0bf59;--h:#62d9b1;--e:#a3b0ff;--t:#f49bcf;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101426;--surface:#191f35;--ink:#f2f3fb;--ink2:#b4bdd5;--ink3:#8994b5;--line:#2c3554;--accent:#9ba7ff;--accent-ink:#151a2b;--warn:#ff8978;--good:#62d9b1;--wash:#242a49;--w:#f0bf59;--h:#62d9b1;--e:#a3b0ff;--t:#f49bcf;color-scheme:dark}
+body{background:radial-gradient(ellipse at 90% 0%,rgba(111,125,235,.12),transparent 34%),var(--bg);transition:background-color .25s,color .25s}
+.card{border-radius:16px;box-shadow:0 3px 0 rgba(38,43,76,.025);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+button{border-radius:11px;transition:transform .16s ease,box-shadow .16s ease,background-color .16s ease,border-color .16s ease}
+button.primary{box-shadow:0 5px 0 color-mix(in srgb,var(--accent) 70%,transparent)}
+button.primary:hover{transform:translateY(-2px);box-shadow:0 7px 0 color-mix(in srgb,var(--accent) 70%,transparent)}
+button:active{transform:translateY(1px)}
+@media(hover:hover) and (pointer:fine){.grid>.card:hover,.grid>button:hover,.acard:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 9px 24px rgba(47,57,112,.10)}}
+.hero{grid-template-columns:minmax(0,1fr) minmax(270px,.92fr);gap:clamp(16px,3vw,30px);overflow:hidden;position:relative}
+.hero h1{max-width:12ch;line-height:.99}
+.hero-art{width:100%;border-radius:14px;overflow:hidden;background:linear-gradient(145deg,#dfe5ff,#f5d8b6);min-height:230px;display:flex;align-items:center}
+.hero-art svg{display:block;width:100%;height:auto}
+.hero-kicker{display:inline-flex;align-items:center;gap:8px;width:fit-content;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:.75rem;color:var(--ink2)}
+.hero-kicker:before{content:"";width:8px;height:8px;background:var(--good);border-radius:50%;box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 15%,transparent)}
+.home-step{position:relative;overflow:hidden;min-height:112px}
+.home-step .step-no{font:800 2rem var(--f-display);color:var(--accent);opacity:.72;line-height:1}
+.home-step p{max-width:30ch}
+.chip{border-radius:999px}
+.fill{transform-origin:left;animation:bar-grow .7s cubic-bezier(.2,.75,.2,1) both}
+@keyframes bar-grow{from{transform:scaleX(.02)}to{transform:scaleX(1)}}
+.fade{animation:arrive .38s cubic-bezier(.2,.7,.2,1) both}
+@keyframes arrive{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.life-road{stroke-dasharray:7 9;animation:road-dash 22s linear infinite}
+.sun-drift{transform-origin:490px 58px;animation:sun-breathe 5s ease-in-out infinite}
+.cloud-drift{animation:cloud-drift 16s ease-in-out infinite alternate}
+@keyframes road-dash{to{stroke-dashoffset:-320}}
+@keyframes sun-breathe{50%{transform:scale(1.06)}}
+@keyframes cloud-drift{to{transform:translateX(-14px)}}
+@media(max-width:720px){.hero{grid-template-columns:1fr}.hero-art{min-height:180px}.hero-art svg{max-height:260px}.home-step{min-height:0}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+
+/* Photo-led visual pass: real documentary images give the life paths a human scale. */
+.hero-photos{position:relative;min-height:300px;border-radius:18px;overflow:hidden;display:grid;grid-template-columns:1.25fr .85fr;grid-template-rows:1fr 1fr;gap:8px;background:var(--wash);padding:8px}
+.hero-photos img{width:100%;height:100%;min-height:0;object-fit:cover;display:block;border-radius:12px;filter:saturate(1.06)}
+.hero-photos .photo-main{grid-row:1 / span 2;min-height:280px}
+.hero-photos .photo-small{min-height:135px}
+.photo-caption{position:absolute;left:18px;right:18px;bottom:18px;padding:10px 13px;border-radius:10px;color:#fff;background:linear-gradient(90deg,rgba(15,20,34,.84),rgba(15,20,34,.2));font-size:.78rem;letter-spacing:.02em;text-shadow:0 1px 3px #000}
+.life-photo{width:100%;height:190px;object-fit:cover;display:block;border-radius:13px;border:1px solid var(--line)}
+.event-scene{position:relative;overflow:hidden;border-radius:13px;height:clamp(150px,28vw,230px);background:var(--wash);margin-bottom:4px}
+.event-scene img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.08)}
+.event-scene:after{content:"";position:absolute;inset:35% 0 0;background:linear-gradient(transparent,rgba(10,14,27,.72));pointer-events:none}
+.event-scene .scene-caption{position:absolute;z-index:1;bottom:12px;left:14px;right:14px;color:white;font:600 .85rem var(--f-body);text-shadow:0 1px 3px #000}
+.event-figure,.household-figure{margin:0;display:flex;flex-direction:column;gap:5px;min-width:0}.event-figure .event-scene{margin:0}.photo-source,.photo-credit{font:400 .72rem/1.4 var(--f-body);color:var(--ink3);margin:0}.photo-source{text-align:right}.photo-source a,.photo-credit a{color:inherit;text-decoration:underline;text-underline-offset:2px}.household-figure{gap:5px}.household-figure .life-photo{margin:0}
+.photo-credit{font-size:.68rem;color:var(--ink3);margin-top:3px}
+.photo-credit a{color:inherit}
+@media(max-width:560px){.hero-photos{min-height:230px;gap:5px;padding:5px}.hero-photos .photo-main{min-height:220px}.hero-photos .photo-small{min-height:105px}.life-photo{height:155px}}
+
+
+/* V5: chapter progress, tactile event choices, animated reveals and a personal Life Album. */
+.journey-card{padding:13px 15px;background:linear-gradient(120deg,var(--surface),var(--wash));border:1px solid var(--line);border-radius:15px;overflow:hidden}
+.journey-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+.journey-head .journey-title{font:600 .68rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+.journey-head strong{font:600 .78rem var(--f-body);color:var(--ink2)}
+.journey-stops{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;position:relative}
+.journey-stop{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;text-align:center;padding:0 2px;color:var(--ink3);font-size:.68rem;line-height:1.15}
+.journey-dot{width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--surface);font:500 .72rem var(--f-mono);transition:background .3s,color .3s,transform .3s,border .3s}
+.journey-stop.done{color:var(--good)}.journey-stop.done .journey-dot{background:color-mix(in srgb,var(--good) 13%,var(--surface));border-color:var(--good);color:var(--good)}
+.journey-stop.active{color:var(--ink);font-weight:600}.journey-stop.active .journey-dot{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);transform:scale(1.1);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 15%,transparent)}
+.journey-stop small{font-size:.65rem;color:var(--ink3);font-weight:400}
+.event-intro{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:2px 0 4px}
+.event-intro span{font:500 .69rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.event-choice{position:relative;min-height:88px;padding:14px 13px 13px 51px;overflow:hidden;background:linear-gradient(135deg,var(--surface),color-mix(in srgb,var(--wash) 60%,var(--surface)));border:1px solid var(--line);box-shadow:inset 3px 0 0 color-mix(in srgb,var(--accent) 35%,transparent);}
+.event-choice:before{content:attr(data-step);position:absolute;left:13px;top:15px;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--wash);color:var(--accent);font:600 .74rem var(--f-mono);border:1px solid var(--line)}
+.event-choice:hover:not([disabled]){border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent),0 7px 20px rgba(47,57,112,.09)}
+.event-choice .choice b{font:700 1rem var(--f-display);line-height:1.2}
+.event-choice .choice small{line-height:1.35;margin-top:4px}
+.event-figure{animation:scene-arrive .42s ease both}
+@keyframes scene-arrive{from{opacity:.45;transform:scale(.985)}to{opacity:1;transform:scale(1)}}
+.outcome-wrap{padding:14px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:14px;background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 8%,var(--surface)),var(--surface));animation:outcome-pop .35s cubic-bezier(.2,.7,.2,1) both}
+.outcome-lead{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.outcome-mark{width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 1.1rem var(--f-display)}
+.outcome-lead strong{display:block;font:700 1rem var(--f-display)}.outcome-lead small{display:block;color:var(--ink2);font-size:.8rem}
+.impact-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.impact-stat{--impact:var(--accent);min-width:0;padding:9px;border-radius:10px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:5px}
+.impact-stat.W{--impact:var(--w)}.impact-stat.H{--impact:var(--h)}.impact-stat.E{--impact:var(--e)}.impact-stat.T{--impact:var(--t)}
+.impact-stat span{font-size:.72rem;color:var(--ink2)}.impact-stat b{font:700 1.17rem var(--f-display);color:var(--impact);font-variant-numeric:tabular-nums}
+.impact-track{height:5px;border-radius:99px;background:var(--wash);overflow:hidden}.impact-track i{display:block;height:100%;width:0;background:var(--impact);border-radius:99px;animation:impact-grow .65s .08s cubic-bezier(.2,.7,.2,1) forwards}
+.impact-reasons{margin-top:10px;font-size:.78rem;line-height:1.45;color:var(--ink2)}
+@keyframes impact-grow{to{width:var(--impact-width)}}@keyframes outcome-pop{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.life-album{padding:16px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(140deg,var(--surface),color-mix(in srgb,var(--wash) 45%,var(--surface)));display:flex;flex-direction:column;gap:12px}
+.album-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.album-header h3{font-size:1.3rem}.album-story{max-width:72ch;color:var(--ink2);font-size:.9rem;line-height:1.55}
+.album-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.album-card{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:13px;background:var(--surface);display:flex;flex-direction:column;gap:0}
+.album-visual{position:relative;height:138px;background:var(--wash);overflow:hidden;margin:0}
+.album-visual img{width:100%;height:100%;object-fit:cover;display:block}
+.album-visual:after{content:"";position:absolute;inset:35% 0 0;background:linear-gradient(transparent,rgba(10,14,27,.7));pointer-events:none}
+.album-visual figcaption{position:absolute;z-index:1;bottom:8px;left:10px;right:10px;color:white;font-size:.72rem;line-height:1.3;text-shadow:0 1px 3px #000}
+.album-visual .photo-source{position:absolute;z-index:2;top:5px;right:7px;color:white;font-size:.62rem;opacity:.9}
+.album-art{height:138px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:radial-gradient(circle at 80% 25%,color-mix(in srgb,var(--accent) 34%,transparent),transparent 32%),linear-gradient(135deg,var(--wash),var(--surface))}
+.album-art:before,.album-art:after{content:"";position:absolute;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+.album-art:before{width:115px;height:115px;right:-23px;top:-38px}.album-art:after{width:76px;height:76px;right:20px;top:12px}
+.album-art b{position:relative;z-index:1;font:800 2.4rem var(--f-display);color:var(--accent);opacity:.9}
+.album-body{padding:11px;display:flex;flex-direction:column;gap:6px;flex:1}
+.album-body .album-stage{font:500 .65rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.album-body h4{font:700 .98rem var(--f-display);line-height:1.2;margin:0}.album-body p{font-size:.78rem;line-height:1.4;color:var(--ink2)}
+.album-takeaway{border-radius:10px;padding:11px 13px;background:var(--wash);font-size:.83rem;line-height:1.45}
+@media(max-width:620px){.journey-stops{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:12px}.journey-stop{flex-direction:row;text-align:left;justify-content:flex-start;gap:7px}.journey-dot{width:26px;height:26px;flex:0 0 26px}.journey-stop small{display:none}.impact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.album-grid{grid-template-columns:1fr}.album-card{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(0,1.2fr)}.album-visual,.album-art{height:100%;min-height:140px}.album-body{padding:10px}}
+@media(prefers-reduced-motion:reduce){.event-figure,.outcome-wrap{animation:none}.impact-track i{animation:none;width:var(--impact-width)}}
+
+</style>
+<div id="app"></div>
+<script>
+</script>
+<script>
+/* Bounded Agency — simulation engine (pure JS, no DOM) */
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function rngFor(seed,phase,tag){return mulberry32(hashStr(seed+'|'+phase+'|'+tag));}
+
+const PH=[
+ {id:0,name:'Childhood',ages:[0,14],ap:2,cost:0,decay:0,haz:.035},
+ {id:1,name:'Youth',ages:[15,24],ap:3,cost:3,decay:.5,haz:.01},
+ {id:2,name:'Early adulthood',ages:[25,39],ap:4,cost:5,decay:2,haz:.02},
+ {id:3,name:'Midlife',ages:[40,59],ap:4,cost:6,decay:5,haz:.07},
+ {id:4,name:'Young-old',ages:[60,74],ap:3,cost:7,decay:7,haz:.20},
+ {id:5,name:'Oldest-old',ages:[75,95],ap:2,cost:8,decay:9,haz:1}
+];
+const POLICIES={
+ child:{name:'Early-Life Investment',short:'School meals, nutrition and early childhood care',target:'Effective from childhood through youth only'},
+ uhc:{name:'Universal Health Cover',short:'Primary care and hospital cover for everyone',target:'Improves access and reduces covered treatment costs'},
+ girls:{name:'Girls’ Schooling & Women’s Property',short:'School access, inheritance rights and widow protections',target:'Reduces modeled gender barriers; cannot undo past losses'},
+ scholar:{name:'Anti-discrimination & Scholarships',short:'Fee waivers and fair hiring enforcement',target:'Reduces modeled caste barriers'},
+ pension:{name:'Universal Social Pension',short:'A basic income floor for everyone 60+',target:'Acts only in old age'},
+ ltc:{name:'Long-Term Care Insurance',short:'Care benefits based on functional need',target:'Covers added care needs from poor health/chronic conditions and eases caregiver strain'}
+};
+const COHORTS={
+ A:{label:'Independence cohort',born:1950,tag:'Born 1950'},
+ B:{label:'Green Revolution cohort',born:1965,tag:'Born 1965'},
+ C:{label:'Liberalisation cohort',born:1980,tag:'Born 1980'},
+ D:{label:'Pandemic-era youth cohort',born:2000,tag:'Born 2000'}
+};
+const ACTIONS={
+ study:{name:'Study & train',blurb:'Build skills. Fees and access vary.'},
+ work:{name:'Work & earn',blurb:'Income now. Wears the body.'},
+ invest:{name:'Save & invest',blurb:'Assets earn returns, if you have assets.'},
+ health:{name:'Look after health',blurb:'Care, food, rest. Access varies.'},
+ nurture:{name:'Nurture bonds',blurb:'Build social ties. Takes time; support can flow both ways.'}
+};
+const STATS={W:'Wealth',H:'Health',E:'Skills',T:'Ties'};
+function actionName(id,ph){
+ if(id==='study') return ph===0?'Learn & build foundations':ph<=2?'Study & train':ph<=4?'Retrain & learn':'Learn at your own pace';
+ if(id==='work') return ph===0?'Help the household earn':ph===1?'Work & earn':ph<=3?'Work, earn & build security':'Take suitable paid work';
+ if(id==='invest') return ph<=1?'Save for later':ph<=3?'Save & invest':'Protect and draw on savings';
+ if(id==='health') return ph<=1?'Protect health & nutrition':ph<=3?'Maintain health':'Manage health & care';
+ if(id==='nurture') return ph<=1?'Build family & community ties':ph<=3?'Maintain relationships':'Stay connected & seek support';
+ return ACTIONS[id].name;
+}
+function actionBlurb(id,ph){
+ if(id==='work'&&ph===0)return 'A constrained household response: income now, with risks to schooling and health.';
+ if(id==='work'&&ph>=4)return 'Income may be limited by health, age discrimination and available work.';
+ if(id==='study'&&ph>=3)return 'Retraining can help, but time, money and access constrain who benefits.';
+ if(id==='invest'&&ph>=4)return 'Savings can support later life, but returns are uncertain and assets are unequal.';
+ return ACTIONS[id].blurb;
+}
+function cumulativePanel(life){
+ const st=life.st,items=[];
+ if(st.W<0)items.push(['Debt compounds','Interest makes future recovery harder.','bad']);
+ else if(st.W>=40)items.push(['Asset buffer','Savings can absorb shocks and earn returns.','good']);
+ else items.push(['Thin financial buffer','A large shock may force borrowing or lost consumption.','bad']);
+ if(st.scars||st.chronic)items.push(['Health disadvantage',`${st.scars} early-harm scar(s), ${st.chronic} chronic condition(s) raise later risk.`,'bad']);
+ else items.push(['Health can still accumulate','Repeated shocks or deprivation can create lasting harm.','']);
+ if(st.E>=45)items.push([`Skills ${Math.round(st.E)}/100 · threshold reached`,'At 45 points, skills begin to improve modeled access to formal work.','good']);
+ else items.push([`Skills ${Math.round(st.E)}/100 · ${Math.max(0,Math.ceil(45-st.E))} to threshold`,'The model uses 45 skills points as a simplified formal-work threshold. Studying still helps below it.','bad']);
+ if(st.T>=60)items.push(['Strong ties','Social support can soften shocks and old-age costs.','good']);
+ else if(st.T<35)items.push(['Thin support network','Fewer social resources are available when a shock hits.','bad']);
+ if(st.P>=.4)items.push(['Pension rights building','Formal work has created a future income source.','good']);
+ else if(life.phase>=2)items.push(['Weak pension protection','Old-age income will rely more on savings, work or family.','bad']);
+ return `<div class="card"><h3>Cumulative effects</h3><p class="small muted">These conditions carry into later phases; they are not reset each round.</p><div class="chips">${items.map(([t,d,k])=>`<span class="chip ${k}" title="${esc(d)}">${esc(t)}</span>`).join('')}</div><div class="small muted">${items.slice(0,3).map(x=>esc(x[1])).join(' ')}</div></div>`;
+}
+
+/* ---------- household lottery ----------
+   Each table draws distinct household patterns without replacement. The pattern is
+   more than a label: it changes the starting buffer and the returns to schooling,
+   work and health care. All figures are illustrative game modifiers. */
+const HOUSEHOLDS={
+ farm:{name:'Rain-fed smallholder',setting:'A family farm depends on the monsoon; land and equipment are modest.',place:'R',reg:'N',W:-3,H:-1,E:-2,T:5,study:.88,work:1.08,care:.90},
+ lease:{name:'Tenant cultivator',setting:'The household cultivates leased land and owes rent after a weak harvest.',place:'R',reg:'N',W:-5,H:-1,E:-1,T:3,study:.92,work:1.12,care:.88},
+ coast:{name:'Coastal fishing household',setting:'Income follows weather, catch size and access to the market.',place:'R',reg:'S',W:0,H:-1,E:0,T:5,study:.94,work:1.13,care:.90},
+ remote:{name:'Remote village household',setting:'School, transport and clinics are far away; neighbours are an important safety net.',place:'R',reg:'N',W:-4,H:-2,E:-3,T:6,study:.78,work:1.02,care:.78},
+ repair:{name:'Small-town repair shop',setting:'A family workshop offers practical skills, customers and uneven cash flow.',place:'U',reg:'N',W:3,H:0,E:1,T:5,study:1.00,work:1.10,care:1.00},
+ textile:{name:'Textile-workshop wage household',setting:'Several adults depend on contract or piece-rate work and crowded housing.',place:'U',reg:'N',W:-2,H:-2,E:1,T:2,study:.94,work:1.14,care:.88},
+ migrant:{name:'Migrant metro renters',setting:'The family has job access but high rent, uncertain contracts and relatives far away.',place:'U',reg:'N',W:-4,H:-1,E:1,T:-4,study:1.02,work:1.12,care:.92},
+ public:{name:'Public-service salaried household',setting:'Regular pay and a stronger school network provide a buffer, though not immunity to shocks.',place:'U',reg:'N',W:8,H:2,E:3,T:2,study:1.15,work:.96,care:1.10},
+ trader:{name:'Market-town trading family',setting:'A small shop creates contacts and upside, but stock and debt tie up savings.',place:'U',reg:'S',W:4,H:0,E:2,T:4,study:1.02,work:1.12,care:1.00},
+ service:{name:'Service-sector renter',setting:'The household relies on education-linked jobs and pays a large share of income in rent.',place:'U',reg:'S',W:1,H:1,E:4,T:1,study:1.18,work:1.00,care:1.05},
+ gig:{name:'Platform and delivery workers',setting:'Work is available quickly, but earnings fluctuate and the body absorbs much of the risk.',place:'U',reg:'S',W:-2,H:-3,E:1,T:0,study:1.00,work:1.20,care:.82},
+ artisan:{name:'Craft and handloom household',setting:'Trade knowledge and community ties are strong, while demand and prices can be unstable.',place:'U',reg:'S',W:0,H:-1,E:2,T:6,study:1.00,work:1.10,care:.92,save:.88,ties:1.18},
+ dairy:{name:'Dairy cooperative household',setting:'Daily milk sales create regular small cash flow; animal illness can disrupt it.',place:'R',reg:'N',W:1,H:1,E:0,T:5,study:.94,work:1.08,care:1.02,save:1.12,ties:1.08},
+ orchard:{name:'Orchard and seasonal labour household',setting:'Income arrives in bursts around harvest, leaving lean months exposed.',place:'R',reg:'N',W:0,H:0,E:1,T:3,study:.91,work:1.16,care:.91,save:.82,ties:.96},
+ forest:{name:'Forest-edge gathering household',setting:'Local ecological knowledge matters, but access to schools, transport and formal services is uneven.',place:'R',reg:'S',W:-2,H:-1,E:-2,T:7,study:.80,work:1.04,care:.79,save:.78,ties:1.22},
+ canal:{name:'Irrigated farm with shared equipment',setting:'Reliable water and pooled tools raise output, though equipment costs are shared.',place:'R',reg:'N',W:4,H:1,E:1,T:7,study:.98,work:1.12,care:.96,save:1.04,ties:1.16},
+ brick:{name:'Brick-kiln seasonal workers',setting:'Long shifts and seasonal migration bring cash but strain health and schooling continuity.',place:'R',reg:'N',W:-3,H:-4,E:-2,T:1,study:.82,work:1.20,care:.72,save:.76,ties:.82},
+ transport:{name:'Bus and transport operator family',setting:'Route knowledge and local contacts help work, while fuel and repair bills are unpredictable.',place:'U',reg:'N',W:2,H:-1,E:1,T:5,study:.98,work:1.16,care:.92,save:.92,ties:1.12},
+ clinic:{name:'Small private clinic household',setting:'Health-sector knowledge helps navigate care, but earnings depend on patients and fees.',place:'U',reg:'S',W:5,H:3,E:4,T:3,study:1.16,work:1.08,care:1.22,save:1.05,ties:1.00},
+ schoolstaff:{name:'Low-paid school staff household',setting:'School access and learning support are strong, while salaries leave limited room to save.',place:'R',reg:'S',W:0,H:1,E:5,T:4,study:1.24,work:.94,care:1.00,save:.90,ties:1.08},
+ construction:{name:'Construction-site migrant family',setting:'Work is available in growing towns, but housing, safety and job continuity are fragile.',place:'U',reg:'N',W:-3,H:-4,E:-2,T:-2,study:.84,work:1.18,care:.75,save:.80,ties:.82},
+ tailoring:{name:'Home-based tailoring household',setting:'Home-based orders allow flexible work but piece rates and demand fluctuate.',place:'U',reg:'N',W:0,H:0,E:2,T:3,study:1.00,work:1.06,care:.98,save:.96,ties:1.04},
+ smallholding:{name:'Women-led smallholding',setting:'Farm decisions and income depend on land access, unpaid work and control over earnings.',place:'R',reg:'S',W:-1,H:0,E:1,T:5,study:.93,work:1.02,care:.91,save:.86,ties:1.12},
+ retired:{name:'Grandparent-supported household',setting:'Older relatives provide care and knowledge, but their health needs can absorb time and savings.',place:'U',reg:'S',W:2,H:-1,E:2,T:8,study:1.04,work:1.00,care:.94,save:.90,ties:1.24},
+ remittance:{name:'Remittance-dependent household',setting:'Money from a relative abroad or in another city helps, but transfers can stop suddenly.',place:'R',reg:'S',W:7,H:0,E:2,T:2,study:1.08,work:.98,care:.94,save:1.14,ties:.92},
+ marketstall:{name:'Street-vending household',setting:'Daily sales can cover essentials, but weather, enforcement and stock costs make income volatile.',place:'U',reg:'S',W:-1,H:-2,E:0,T:4,study:.91,work:1.15,care:.82,save:.78,ties:1.08},
+ warehouse:{name:'Warehouse and logistics household',setting:'Regular shifts and transport links help earnings, while repetitive work and contracts create risks.',place:'U',reg:'N',W:1,H:-2,E:1,T:1,study:.96,work:1.14,care:.84,save:.94,ties:.90},
+ tourism:{name:'Tourism-season household',setting:'Guest work and local services pay well in peak months but fall sharply off-season.',place:'U',reg:'S',W:2,H:0,E:2,T:5,study:1.02,work:1.17,care:.97,save:.84,ties:1.12},
+ fisherinland:{name:'Inland fish-farming household',setting:'Ponds and market links offer opportunity, but disease and water quality can wipe out a season.',place:'R',reg:'S',W:1,H:0,E:1,T:4,study:.96,work:1.14,care:.92,save:.90,ties:1.04},
+ selfhelp:{name:'Women’s self-help group household',setting:'Group savings and mutual support improve resilience, although loan repayments limit flexibility.',place:'R',reg:'S',W:0,H:1,E:2,T:8,study:1.00,work:1.04,care:1.00,save:1.08,ties:1.25},
+ smallfactory:{name:'Small-factory apprentice household',setting:'A trade apprenticeship can lead to skilled work, but early pay is low and safety varies.',place:'U',reg:'N',W:-1,H:-1,E:3,T:2,study:1.10,work:1.12,care:.91,save:.86,ties:.94},
+ landdispute:{name:'Household in a land-dispute area',setting:'Unclear tenure makes investment risky and can divert money to travel, paperwork or legal help.',place:'R',reg:'N',W:-4,H:-1,E:0,T:3,study:.90,work:1.02,care:.87,save:.70,ties:1.02},
+ floodplain:{name:'Floodplain settlement household',setting:'Water and fertile land support livelihoods, but floods can destroy homes, tools and school routines.',place:'R',reg:'E',W:-2,H:-3,E:-1,T:6,study:.86,work:1.08,care:.78,save:.74,ties:1.16},
+ hillroad:{name:'Remote hill-road household',setting:'Tourism, farming or public work may be available, but travel to schools and hospitals is costly.',place:'R',reg:'N',W:-2,H:-1,E:-2,T:5,study:.81,work:1.00,care:.73,save:.80,ties:1.08},
+ salariedprivate:{name:'Private salaried household with rent',setting:'Monthly pay helps planning, but rent, tuition and job insecurity consume the buffer.',place:'U',reg:'N',W:3,H:1,E:4,T:2,study:1.16,work:1.02,care:1.06,save:1.00,ties:.96},
+ shopfloor:{name:'Factory shop-floor household',setting:'Shift work brings a predictable wage when orders hold, with injury and layoff risks.',place:'U',reg:'S',W:1,H:-2,E:1,T:2,study:.96,work:1.15,care:.82,save:.94,ties:.94},
+ cooperative:{name:'Producer-cooperative household',setting:'Shared purchasing and selling improve bargaining power, but decisions take time and returns are pooled.',place:'R',reg:'S',W:2,H:0,E:2,T:8,study:1.00,work:1.10,care:.98,save:1.04,ties:1.22},
+ carework:{name:'Paid domestic-care worker household',setting:'Care work supports other families, but pay, rest time and social protection are limited.',place:'U',reg:'N',W:-2,H:-2,E:1,T:2,study:.91,work:1.08,care:.80,save:.78,ties:.94},
+ repairmobile:{name:'Mobile-phone repair kiosk household',setting:'Technical skill and repeat customers create upward mobility, but parts prices and competition shift.',place:'U',reg:'S',W:2,H:0,E:3,T:4,study:1.08,work:1.14,care:1.00,save:1.00,ties:1.04},
+ examaspirant:{name:'Competitive-exam aspirant household',setting:'Education is the main route hoped for, but coaching costs and uncertain outcomes strain savings.',place:'U',reg:'N',W:-1,H:-1,E:4,T:1,study:1.22,work:.88,care:.98,save:.78,ties:.88},
+ careburden:{name:'Household with a disabled family member',setting:'Care needs create extra costs and time demands, while lived experience builds practical knowledge.',place:'U',reg:'S',W:-3,H:-2,E:0,T:4,study:.92,work:.88,care:.82,save:.74,ties:1.06},
+ pensioner:{name:'Pension-supported multigenerational home',setting:'A regular pension supports the household, but medical costs and dependence can grow.',place:'U',reg:'N',W:5,H:0,E:2,T:6,study:1.02,work:.96,care:1.12,save:1.08,ties:1.14}
+ };
+// Each household has a distinct, concrete mechanism behind its modifiers.
+// Percentages are game assumptions, deliberately visible rather than hidden in the math.
+const HOUSEHOLD_EFFECTS={
+ farm:{study:'Monsoon work competes with study time',work:'Harvest income opportunity',care:'Rural clinic travel',save:'Seasonal cash-flow squeeze',ties:'Neighbour exchange network'},
+ lease:{study:'Rent pressure on school costs',work:'Tenant labour demand',care:'Care delayed by travel costs',save:'Land-rent and input debt',ties:'Landlord-dependent contacts'},
+ coast:{study:'Fishing hours disrupt attendance',work:'Catch and market access',care:'Weather-dependent care access',save:'Unsteady catch income',ties:'Crew and harbour network'},
+ remote:{study:'Long distance to school',work:'Few nearby paid jobs',care:'Long journey to clinic',save:'Thin emergency cash buffer',ties:'Strong local mutual aid'},
+ repair:{study:'Workshop skills complement schooling',work:'Repeat customers and repair trade',care:'Town service access',save:'Inventory ties up cash',ties:'Customer referrals'},
+ textile:{study:'Shift schedules interrupt learning',work:'Piece-rate work availability',care:'Crowded housing raises care barriers',save:'Irregular wage saving',ties:'Co-worker support'},
+ migrant:{study:'School changes after migration',work:'Dense urban job access',care:'Unfamiliar local services',save:'Rent and remittance pressure',ties:'Family far from support'},
+ public:{study:'Stable school support',work:'Secure-job competition',care:'Predictable service access',save:'Regular pay supports planning',ties:'Institutional contacts'},
+ trader:{study:'Shop duties compete with study',work:'Trading and customer contacts',care:'Market-town care access',save:'Stock locks up working capital',ties:'Supplier and customer network'},
+ service:{study:'Education has high payoff',work:'Credential-linked vacancies',care:'Private services within reach',save:'Rent limits surplus cash',ties:'Professional referrals'},
+ gig:{study:'Unpredictable shifts interrupt study',work:'Fast entry to platform work',care:'Injury and fatigue risks',save:'Volatile daily earnings',ties:'Weak workplace security'},
+ artisan:{study:'Apprenticeship knowledge supports learning',work:'Craft skill and buyer demand',care:'Seasonal income affects care',save:'Unsold stock risk',ties:'Guild and craft community'},
+ dairy:{study:'Morning animal care competes with class',work:'Daily milk sales',care:'Livestock health competes for resources',save:'Small regular cash flows',ties:'Cooperative members'},
+ orchard:{study:'Harvest season interrupts school',work:'Seasonal peak wages',care:'Seasonal access to services',save:'Long lean-season gap',ties:'Harvest-time labour exchange'},
+ forest:{study:'Distance and language access barriers',work:'Forest knowledge and local products',care:'Remote health outreach',save:'Few safe saving options',ties:'Shared ecological knowledge'},
+ canal:{study:'Reliable farm routines support attendance',work:'Irrigation raises work productivity',care:'Village service access',save:'Shared equipment costs',ties:'Water-user group network'},
+ brick:{study:'Migration breaks school continuity',work:'High-demand kiln labour',care:'High physical strain and poor access',save:'Wages lost to advances',ties:'Worksite ties are fragile'},
+ transport:{study:'Long shifts affect study routines',work:'Route knowledge and operator contacts',care:'Travel-based service access',save:'Fuel and repair bills',ties:'Passenger and route network'},
+ clinic:{study:'Health knowledge supports learning',work:'Health-sector know-how',care:'Better care navigation',save:'Equipment and fee uncertainty',ties:'Patient referrals'},
+ schoolstaff:{study:'School-based learning support',work:'Limited salary growth',care:'Familiarity with public services',save:'Low salary caps saving',ties:'School-community links'},
+ construction:{study:'Site moves interrupt schooling',work:'Construction demand and overtime',care:'Worksite safety and clinic gaps',save:'Unpaid wages and job gaps',ties:'Temporary worksite contacts'},
+ tailoring:{study:'Flexible home work can protect study time',work:'Repeat orders and piece-rate demand',care:'Home-based care flexibility',save:'Small order payments',ties:'Neighbour referrals'},
+ smallholding:{study:'Unpaid farm work competes with study',work:'Control over farm earnings',care:'Distance to specialist care',save:'Limited control over cash',ties:'Neighbour and farm networks'},
+ retired:{study:'Grandparent tutoring support',work:'Care duties limit paid hours',care:'Existing elder-care needs',save:'Medical costs absorb savings',ties:'Intergenerational support'},
+ remittance:{study:'Transfers can fund learning',work:'Local work may be less necessary',care:'Care depends on who remains at home',save:'Transfers create a buffer but can stop',ties:'Distant family support'},
+ marketstall:{study:'Market hours compete with class',work:'Daily sales opportunity',care:'Outdoor work raises health exposure',save:'Stock and enforcement losses',ties:'Nearby vendor solidarity'},
+ warehouse:{study:'Shift work constrains study',work:'Logistics-sector hiring',care:'Physical fatigue limits recovery',save:'Contract gaps interrupt saving',ties:'Limited time for community ties'},
+ tourism:{study:'Seasonal work overlaps with school',work:'Peak-season earnings',care:'Seasonal service demand',save:'Off-season income cliff',ties:'Tourism customer network'},
+ fisherinland:{study:'Pond duties compete with classes',work:'Fish harvest and market access',care:'Water-quality health risks',save:'Disease can wipe out capital',ties:'Shared pond and buyer network'},
+ selfhelp:{study:'Group mentoring and information',work:'Group referrals and pooled purchasing',care:'Mutual support improves navigation',save:'Group saving discipline; repayments bind cash',ties:'Self-help group solidarity'},
+ smallfactory:{study:'Apprenticeship complements study',work:'Trade apprenticeship route',care:'Shop-floor injury exposure',save:'Low apprentice pay',ties:'Workshop mentor network'},
+ landdispute:{study:'Paperwork and disputes divert time',work:'Unclear tenure limits investment',care:'Legal costs compete with care',save:'Land insecurity blocks long-term saving',ties:'Local mediation contacts'},
+ floodplain:{study:'Floods interrupt school attendance',work:'Seasonal floodplain productivity',care:'Flood disruption to clinics',save:'Flood damage risk',ties:'Neighbour recovery networks'},
+ hillroad:{study:'Travel time to school',work:'Limited nearby vacancies',care:'Road access to hospital',save:'Travel costs eat surplus',ties:'Strong village reciprocity'},
+ salariedprivate:{study:'Tuition investment raises access',work:'Credentialled private jobs',care:'Employer-linked service access',save:'Rent and fees absorb salary',ties:'Workplace referrals'},
+ shopfloor:{study:'Shift schedules constrain learning',work:'Factory wage access',care:'Industrial health exposure',save:'Layoff risk disrupts saving',ties:'Co-worker support'},
+ cooperative:{study:'Cooperative learning and shared knowledge',work:'Collective bargaining power',care:'Shared community resources',save:'Pooled returns reduce individual control',ties:'Producer network'},
+ carework:{study:'Unpaid care competes with study',work:'Care-sector job demand',care:'Care work causes exhaustion',save:'Low pay and irregular hours',ties:'Client contacts with limited reciprocity'},
+ repairmobile:{study:'Technical practice complements schooling',work:'Repair skills and repeat customers',care:'Urban service access',save:'Parts inventory risk',ties:'Customer referrals'},
+ examaspirant:{study:'High study payoff with coaching costs',work:'Exam preparation delays earnings',care:'Stress and access to coaching support',save:'Coaching fees strain savings',ties:'Peer study network'},
+ careburden:{study:'Care duties reduce study time',work:'Care schedule restricts job choice',care:'High ongoing care requirements',save:'Recurring care expenses',ties:'Family care coordination'},
+ pensioner:{study:'Older relatives can support learning',work:'Pension reduces immediate work pressure',care:'Regular income can improve care access',save:'Pension stabilises cash flow',ties:'Multigenerational support'}
+};
+for (const [id,h] of Object.entries(HOUSEHOLDS)) {
+ const e=HOUSEHOLD_EFFECTS[id]||{};
+ h.studyLabel=e.study||'Household schooling conditions'; h.workLabel=e.work||'Household labour-market conditions';
+ h.careLabel=e.care||'Household care conditions'; h.saveLabel=e.save||'Household saving conditions'; h.tiesLabel=e.ties||'Household network conditions';
+ // Every household has an explicit effect in all five action areas. Where a profile
+ // has no bespoke saving/network value, derive a modest one from its starting buffer
+ // and existing tie strength instead of silently treating it as identical.
+ if(h.save==null) h.save=h.W>=5?1.08:h.W<=-3?.82:.94;
+ if(h.ties==null) h.ties=h.T>=7?1.16:h.T<=1?.84:.96;
+ // Do not amplify household modifiers. Keep every household multiplier in a modest
+ // illustrative band; stronger distinctions should come from different mechanisms,
+ // starting resources and event availability—not stacked arbitrary penalties.
+ for (const k of ['study','work','care','save','ties']) if(h[k]!=null) h[k]=+clamp(h[k],.82,1.18).toFixed(3);
+}
+const HOUSEHOLD_IDS=Object.keys(HOUSEHOLDS);
+function shuffledHouseholds(rng){const a=HOUSEHOLD_IDS.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function randomProfile(rng,cohort,householdId){
+ const q=1+Math.floor(rng()*5), hid=householdId||HOUSEHOLD_IDS[Math.floor(rng()*HOUSEHOLD_IDS.length)],house=HOUSEHOLDS[hid];
+ return {q,g:rng()<.5?'F':'M',place:house.place,reg:house.reg,caste:rng()<.35+.08*(3-q)?1:0,cohort:cohort||'ABCD'[Math.floor(rng()*4)],house:hid};
+}
+function initState(pr){
+ const W0=[6,14,26,44,70][pr.q-1],h=HOUSEHOLDS[pr.house]||HOUSEHOLDS.farm;
+ return {W:clamp(W0+h.W,-10,100),H:clamp(62+3*(pr.q-3)+(pr.reg==='S'?3:0)+(pr.place==='U'?2:0)-(pr.caste?2:0)+h.H,0,100),
+  E:clamp(10+2*(pr.q-1)+h.E,0,100),T:clamp(50+(pr.place==='R'?4:0)+h.T,0,100),P:0,scars:0,chronic:0,widowed:false,place:pr.place,alive:true,deathAge:null,own:0,indep:null,kidEdu:0};
+}
+function polAt(polSched,ph){const o={};for(const k in POLICIES){o[k]=polSched[k]!=null&&polSched[k]<=ph;}return o;}
+function access(st,pr,pol,per){
+ let a=(st.place==='U'?1.0:.88)*(pr.reg==='S'?1.04:.94)*(pr.q<=2?.90:pr.q>=4?1.08:1)*(pr.g==='F'&&pr.reg==='N'?.94:1);
+ if(pol.uhc)a=Math.max(a,1.05);
+ return a+(per.access||0);
+}
+
+/* ---------- actions (pure calc) ---------- */
+function calc(id,st,pr,pol,per,ph,u){
+ const mods=[],d={W:0,H:0,E:0,T:0,P:0},ex={};
+ const M=(l,m)=>{mods.push({label:l,m});return m;};
+ switch(id){
+ case 'study':{
+  const base=[8,12,9,5,2,1][ph],cost=[1,6,4,3,1,0][ph];let m=1;
+  const hh=HOUSEHOLDS[pr.house];if(hh){const accessFactor=(st.place==='R'?.85:1)*hh.study;m*=M(hh.studyLabel,accessFactor);}
+  if(pr.caste&&!pol.scholar)m*=M('Caste-related access barrier (illustrative)',.90);
+  if(pr.g==='F'&&!pol.girls){const x=pr.reg==='N'?.94:.98;m*=M('Gendered access barrier (illustrative)',x);}
+  if(pr.q<=2&&!(pol.child&&ph<=1))m*=M('Low-resource learning gap (illustrative)',.88);
+  if(per.study)m*=M('Era effect',per.study);
+  d.E=base*m*(1-st.E/120);
+  d.W=((pol.child&&ph<=1&&pr.q<=3)||(pol.scholar&&ph===1&&pr.q<=2))?0:-cost;break;}
+ case 'work':{
+  if(ph===0){d.W=pr.g==='M'?3:1;d.E=-3;d.H=-2;ex.child=true;break;}
+  let gm=1,cm=1,pm=1,ag=1;
+  if(pr.g==='F'&&!pol.girls)gm=M('Gendered work-access barrier (illustrative)',pr.reg==='N'?.90:.96);
+  if(pr.caste&&!pol.scholar)cm=M('Caste-related hiring barrier (illustrative)',.92);
+  if(st.place==='U')pm=M('Urban labour-market access (illustrative)',1.08);
+  if(ph===3)ag=M('Ageism',.95);
+  if(ph===4)ag=M('Age and health-related work limits (illustrative)',.80*clamp(st.H/70,.4,1));
+  if(ph===5)ag=M('Age and health-related work limits (illustrative)',.55*clamp(st.H/70,.3,1));
+  const score=st.E+(st.place==='U'?8:0)-(pr.caste&&!pol.scholar?8:0)-(pr.g==='F'&&!pol.girls?6:0)+(per.formal||0);
+  const pf=ph<=3?1/(1+Math.exp(-(score-48)/8)):0;
+  const formal=u<pf;
+  const hh=HOUSEHOLDS[pr.house];if(hh&&hh.work!==1)M(hh.workLabel,hh.work);let inc=(7+.13*st.E)*gm*cm*pm*ag*(per.work||1)*(hh?hh.work:1);
+  ex.pFormal=pf;ex.formal=formal;ex.incInformal=inc;
+  if(formal)inc*=1.4;
+  d.W=inc;d.H=-(st.E<35?2:1);if(formal)d.P=.2;break;}
+ case 'invest':{
+  const hh=HOUSEHOLDS[pr.house],sm=hh&&hh.save!==1?M(hh.saveLabel,hh.save):1;
+  const debtDrag=st.W<0?Math.min(1.8,1+Math.abs(st.W)/50):1;
+  if(st.W<0)mods.push({label:'Debt limits saving returns',m:+(1/debtDrag).toFixed(2)});
+  d.W=ph===0?0:Math.max(.25,.08*Math.max(st.W,0)*sm/debtDrag);break;}
+ case 'health':{
+  const a=access(st,pr,pol,per);mods.push({label:'Access to care',m:+a.toFixed(2)});
+  const hh=HOUSEHOLDS[pr.house];if(hh&&hh.care!==1)mods.push({label:hh.careLabel,m:hh.care});d.H=8*a*(1-st.H/125)*(hh?hh.care:1);d.W=pol.uhc?0:-(ph===0?.5:2);break;}
+ case 'nurture':{
+  const hh=HOUSEHOLDS[pr.house],tm=hh&&hh.ties!==1?M(hh.tiesLabel,hh.ties):1;
+  d.T=9*(1-st.T/130)*tm;d.W=ph>=1?1.2*st.T/50*(hh?hh.ties:1):0;break;}
+ }
+ return {d,mods,ex};
+}
+function applyDelta(st,d){
+ st.W=clamp(st.W+(d.W||0),-40,300);st.H=clamp(st.H+(d.H||0),0,100);
+ st.E=clamp(st.E+(d.E||0),0,100);st.T=clamp(st.T+(d.T||0),0,100);st.P=clamp(st.P+(d.P||0),0,1);
+}
+
+/* ---------- period cards ---------- */
+const NONE=(yr,title,txt)=>({yr,title,txt,mods:{},shock:null});
+const PERIOD={
+A:[
+ {yr:'1950–64',title:'Public health drives & early planning',txt:'Vaccination and sanitation campaigns reach your district. Schools are few.',mods:{},shock:c=>c.chg('H',c.st.place==='U'?6:4,'Public-health campaigns')},
+ {yr:'1965–74',title:'Green Revolution begins',txt:'Better harvests in some regions. Few places in school beyond primary.',mods:{study:.9},shock:c=>{if(c.st.place==='R')c.chg('H',2,'Food security improves')}},
+ {yr:'1975–89',title:'Licence Raj, Emergency & India certified smallpox-free (1977)',txt:'Public-sector jobs are stable and carry pensions, for those who get them.',mods:{formal:6},shock:c=>c.chg('H',2,'Smallpox eradicated')},
+ {yr:'1990–2009',title:'1991 reforms reach you mid-career',txt:'The skills premium arrives late. Skills decide who gains.',mods:{},shock:c=>{if(c.st.E>=45)c.chg('W',6,'Skills premium');else c.chg('W',-6,'Deskilled by reform')}},
+ {yr:'2010–24',title:'PM-JAY (2018), then COVID-19 (2020)',txt:'Hospital cover expands for poorer households. The pandemic hits the old hardest.',mods:{haz:1.35},cover:.5,shock:c=>{c.chg('H',-4,'COVID-19');if(c.st.P<.2)c.chg('W',-3,'Informal income lost')}},
+ NONE('2025+','Uncharted territory','No cohort has aged exactly like yours. Past patterns may not hold (cohort-centrism).')],
+B:[
+ {yr:'1965–79',title:'Green Revolution & India certified smallpox-free (1977)',txt:'Food is more secure. Schools expand.',mods:{},shock:c=>{c.chg('H',5,'Food security, no smallpox');c.chg('E',2,'School expansion')}},
+ {yr:'1980–89',title:'Big cohorts, scarce jobs',txt:'Many young people compete for few good jobs.',mods:{formal:-4},shock:c=>{if(c.st.E<30)c.chg('W',-2,'Scarce jobs')}},
+ {yr:'1990–2004',title:'1991 reforms at 26, on time',txt:'You enter work as the economy opens. Skilled workers gain most.',mods:{},shock:c=>{if(c.st.E>=45)c.chg('W',10,'Skills premium');else c.chg('W',-2,'Left behind by reform')}},
+ {yr:'2005–24',title:'PM-JAY (2018) and COVID-19 at 55',txt:'Hospital cover helps poorer households. The pandemic hits informal workers.',mods:{haz:1.15},cover:.5,shock:c=>{c.chg('H',-3,'COVID-19');if(c.st.P<.2)c.chg('W',-5,'Informal income lost')}},
+ NONE('2025–39','Projected: ageing boom','UNFPA (2023) projects India’s 60+ share will double from 10.5% (2022) to 20.8% (347 million) by 2050, while 78% currently lack a pension.'),
+ NONE('2040+','Uncharted territory','No cohort has aged exactly like yours.')],
+C:[
+ {yr:'1980–94',title:'1991 reforms when you were 11',txt:'Private schools spread. Public schools stretch.',mods:{study:1.1},shock:c=>{if(c.pr.q>=4)c.chg('E',3,'Private schooling')}},
+ {yr:'1995–2004',title:'Services and IT boom',txt:'Urban graduates find formal jobs.',mods:{formal:4},shock:c=>{if(c.st.place==='U'&&c.st.E>=50)c.chg('W',8,'Services boom')}},
+ {yr:'2005–19',title:'Formal-sector growth; PM-JAY at 38',txt:'More formal jobs, for those with skills.',mods:{formal:3},shock:c=>{if(c.st.E>=50)c.chg('W',4,'Formal-sector growth')}},
+ {yr:'2020–39',title:'COVID-19 at 40',txt:'Informal work stops. Care work at home rises, mostly for women.',mods:{haz:1.1},shock:c=>{c.chg('H',-3,'COVID-19');if(c.st.P<.2)c.chg('W',-10,'Informal income lost');if(c.pr.g==='F')c.chg('H',-2,'Care load at home')}},
+ {yr:'2040–54',title:'Silver economy and eldertech',txt:'SAGE-style support for eldercare start-ups. Assistive tech spreads, for those who can pay.',mods:{access:.1},shock:c=>{if(c.st.W>=40)c.chg('H',3,'Assistive tech & telehealth')}},
+ NONE('2055+','Uncharted territory','No cohort has aged exactly like yours.')],
+D:[
+ {yr:'2000–14',title:'Mobile phones; Right to Education Act (2009)',txt:'School access widens.',mods:{study:1.1},shock:null},
+ {yr:'2015–24',title:'COVID-19 at 20',txt:'School closes. Online classes need devices and signal. Jobs freeze as you enter the market.',mods:{work:.9},shock:c=>{c.chg('E',(c.pr.q<=2||c.st.place==='R')?-8:-4,'Learning loss');c.chg('W',-4,'Recession entry')}},
+ {yr:'2025–39',title:'Projected: a changing jobs landscape',txt:'Competition for secure work remains high; outcomes depend on policy, skills and region.',mods:{formal:-3},shock:null},
+ NONE('2040–59','Projected: older population grows rapidly','UNFPA (2023) projects 20.8% of India will be 60+ by 2050, with the 80+ population growing 279% between 2022 and 2050.'),
+ NONE('2060–74','Uncharted territory','No cohort has aged exactly like yours.'),
+ NONE('2075+','Uncharted territory','No cohort has aged exactly like yours.')]
+};
+
+/* ---------- events ---------- */
+const buf=c=>clamp(.45*(c.st.W/100)+.25*(c.st.T/100)+(c.pol.uhc?.15:0),0,.65);
+const EVENTS=[
+{id:'famshock',name:'Household income shock',level:'Meso',concept:'Linked lives · Elder, 1974',ph:[0,1],w:3,
+ text:c=>{const h=HOUSEHOLDS[c.pr.house];const event=c.pr.place==='R'?'A poor season or damaged catch cuts household income.':'A lost contract, slow sales or retrenchment cuts household income.';return event+' '+(h?h.setting:'Everyone in the household feels it.');},
+ choices:[
+  {label:'Take paid or domestic work to help',desc:'Elder: boys into paid work, girls into domestic labour.',avail:()=>true,
+   apply:c=>{const f=c.pr.g==='F';const soft=c.pr.q>=3&&!f;c.chg('W',f?1:4,'Earnings');c.chg('E',soft?-2:f?-5:-4,'Missed school');c.chg('H',-2,'Strain');c.chg('T',soft?3:2,'Family role')}},
+  {label:'The family borrows, you stay in school',desc:'Takes on 9 debt points; outstanding debt grows by 12% per life stage in this teaching model.',avail:()=>true,apply:c=>{c.chg('W',-9,'Borrowing')}},
+  {label:'Call on relatives',desc:'Needs strong ties.',avail:c=>c.st.T>=45?true:'Your ties are too thin',apply:c=>{c.chg('T',-8,'Obligation');c.chg('W',-2,'Shared cost')}}]},
+{id:'childill',name:'Childhood illness',level:'Micro',concept:'Timing · early adversity compounds',ph:[0],w:3,
+ text:c=>'Diarrhoea, pneumonia or malnutrition. How bad it gets depends on care within reach.',
+ apply:c=>{let dmg=Math.max(3,12*(1.05-access(c.st,c.pr,c.pol,c.per)));if(c.pol.child)dmg*=.5;c.chg('H',-dmg,'Illness, harm scaled by access');if(dmg>=8){c.st.scars++;c.note('A scar. Early harm raises later risk.')}}},
+{id:'vax',name:'Health campaign reaches you',level:'Macro',concept:'Historical time & place',ph:[0],w:2,
+ text:c=>'Vaccination teams visit your area.',
+ apply:c=>c.chg('H',6+(c.st.place==='U'?2:0)+(c.pr.reg==='S'?2:0),'Vaccination')},
+{id:'mentor',name:'A teacher notices you',level:'Meso',concept:'Agency within structure',ph:[0,1],w:2,
+ text:c=>'Someone sees promise and pushes you.',
+ apply:c=>c.chg('E',6*((c.pr.caste&&!c.pol.scholar)?.7:1),'Mentoring')},
+{id:'earlymarry',name:'Family expectations',level:'Meso',concept:'Social construction · gender norms',ph:[1],w:3,
+ text:c=>c.pr.g==='F'?'The family expects you to marry soon.':'The family expects you to start earning now.',
+ apply:c=>{if(c.pr.g==='F'){const m=c.pol.girls?.65:(c.pr.reg==='S'?.8:1);c.chg('E',-8*m,'Schooling cut short');c.chg('W',-5*m,'Marriage costs');c.chg('T',3,'New family')}else{c.chg('E',-3,'Less study time');c.chg('W',3,'Earnings')}}},
+{id:'parent',name:'Becoming a parent',level:'Micro',concept:'Timing · on-time vs off-time',ph:[1,2],w:2,wph:{1:1,2:3},
+ text:c=>c.ph===1?'A child arrives early, off-time.':'A child arrives on-time.',
+ apply:c=>{if(c.ph===1){c.chg('W',-12,'Child costs');c.chg('E',-7,'Schooling ends');if(c.pr.g==='F')c.chg('H',-3,'Early childbirth');c.chg('T',4,'New bond')}else{c.chg('W',-8,'Child costs');c.chg('T',8,'New bond');if(c.pr.g==='F')c.chg('W',-3*(c.pol.girls?.75:1),'Motherhood-related income disruption (illustrative)')}}},
+{id:'migrate',name:'A chance to migrate',level:'Macro',concept:'Linked lives · the youth drain',ph:[1,2],w:3,
+ text:c=>'A relative offers a place and a job lead far from home.',
+ choices:[
+  {label:'Stay',desc:'Keep your people close.',avail:()=>true,apply:c=>{c.chg('T',3,'Staying close')}},
+  {label:'Move',desc:'Pay to move. Earn more. Leave ties behind.',avail:()=>true,apply:c=>{c.chg('W',-8,'Moving costs');c.chg('W',c.st.place==='R'?10:6,'Better wages');c.chg('T',-7,'Ties left behind');c.chg('E',3,'New skills');c.st.place='U'}}]},
+{id:'layoff',name:'You lose your job',level:'Macro',concept:'Timing · age 28 vs age 58',ph:[2,3],w:3,
+ text:c=>c.ph===2?'The factory closes, or a contractor drops you. You can start again.':'Laid off at 55+. Ageism makes restarting hard.',
+ choices:[
+  {label:'Retrain for new work',desc:'Costs money now, softens the loss.',avail:()=>true,apply:c=>{const m=(c.st.P>=.25?.5:1)*(c.st.T>=55?.85:1);c.chg('W',-(c.ph===2?12:20)*m*.6-4,'Lost income and course fees');c.chg('E',c.ph===2?4:2,'New skills')}},
+  {label:'Take any work you can find',desc:'Smaller loss, harder on the body.',avail:()=>true,apply:c=>{const m=(c.st.P>=.25?.5:1)*(c.st.T>=55?.85:1);c.chg('W',-(c.ph===2?12:20)*m*.8,'Lost income');c.chg('H',-2,'Strain of poor work')}},
+  {label:'Ride it out on savings and loans',desc:'The full loss lands.',avail:()=>true,apply:c=>{const m=(c.st.P>=.25?.5:1)*(c.st.T>=55?.85:1);c.chg('W',-(c.ph===2?12:20)*m,'Lost income');if(c.ph===3)c.chg('E',-4,'Skills seen as outdated')}}]},
+{id:'illness',name:'Serious illness or accident',level:'Micro',concept:'Cumulative disadvantage',ph:[2,3,4],w:4,
+ text:c=>'A serious illness. Treatment is costly.',
+ apply:c=>{const base=[0,0,14,16,18][c.ph];let cost=12*(c.pol.uhc?.25:(c.per.cover&&c.pr.q<=3?c.per.cover:1));
+  if(c.st.W>=cost){c.chg('W',-cost,'Treatment');c.chg('H',-base*.6,'Illness, treated')}
+  else{c.chg('W',-cost*.6,'Borrowing for care');c.chg('H',-base*1.15,'Illness, partly treated');if(base>=15){c.st.scars++;c.note('Partly treated. A scar.')}}}},
+{id:'chronic',name:'Chronic condition',level:'Micro',concept:'Epidemiological transition · LASI Wave 1 (32.7% hypertension, 14.2% diabetes)',ph:[3,4,5],w:4,
+ text:c=>'Diabetes or hypertension (affecting 14.2% and 32.7% of older adults in LASI Wave 1). Managed, not cured, and often found late among the poor.',
+ apply:c=>{c.st.chronic++;if(c.st.W>=20||c.pol.uhc){c.chg('H',-3,'Diagnosed and treated');c.chg('W',-3,'Ongoing treatment')}else{c.chg('H',-8,'Undiagnosed and untreated')}}},
+{id:'parentcare',name:'A parent needs long-term care',level:'Macro',concept:'Linked lives · personal trouble or public issue?',ph:[2,3,4],w:4,wph:{2:2,3:5,4:2},
+ text:c=>'Dementia, a stroke. Formal long-term-care support is limited, and much care falls to families.',
+ choices:[
+  {label:'Care for them yourself',desc:'Hours, income, and your own health.',avail:()=>true,
+   apply:c=>{const F=c.pr.g==='F';c.chg('W',c.pol.ltc?-3:F?-10:-5,'Reduced work');c.chg('H',c.pol.ltc?-2:-5,'Caregiver strain');c.chg('T',F?6:4,'Family standing')}},
+  {label:'Hire paid care',desc:'Costly. Eased by care insurance.',avail:c=>(c.st.W>=10||c.pol.ltc)?true:'You cannot afford it',
+   apply:c=>{c.chg('W',c.pol.ltc?-3:-14,'Paid care');if(c.pr.g==='F')c.chg('T',-4,'Seen as failing a duty')}},
+  {label:'Old-age home',desc:'Residential care is limited or far from home in many areas.',avail:c=>c.st.place==='R'?'None within reach in rural areas':true,
+   apply:c=>{c.chg('W',c.pol.ltc?-4:-10,'Home fees');c.chg('T',-7,'Distance and guilt')}}]},
+{id:'inherit',name:'Inheritance or family transfer',level:'Meso',concept:'Cumulative advantage across generations',ph:[2,3],w:2,
+ text:c=>'Land, a house, or savings pass down.',
+ apply:c=>{let v=[1,3,8,18,35][c.pr.q-1];if(c.pr.g==='F'&&c.pr.reg==='N'&&!c.pol.girls)v*=.8;c.chg('W',v,'Family wealth')}},
+{id:'ageism',name:'Ageism',level:'Macro',concept:'Ageism · Butler, 1969',ph:[3,4],w:2,
+ text:c=>'Passed over for work and services because of age.',
+ apply:c=>{const m=c.st.E>=60?.5:1;c.chg('W',-5*m*(c.pr.g==='F'?1.15:1),'Opportunity lost');c.chg('T',-2,'Sidelined')}},
+{id:'kidsmove',name:'Adult children move away',level:'Meso',concept:'Linked lives · rural ageing',ph:[4],w:3,
+ text:c=>'Your children leave for work in distant cities.',
+ apply:c=>{c.chg('T',c.st.place==='R'?-8:-4,'Distance');c.chg('W',c.st.kidEdu?9:(c.pr.q>=3?6:3),'Remittances')}},
+{id:'fall',name:'A fall and hospital stay',level:'Micro',concept:'Functional age',ph:[4,5],w:3,
+ text:c=>'A fall at home. Hospital care, then recovery.',
+ apply:c=>{const cost=10*(c.pol.uhc?.2:(c.per.cover&&c.pr.q<=3?c.per.cover:1));
+  if(c.st.W>=cost){c.chg('W',-cost,'Hospital bill');c.chg('H',-10,'Injury')}else{c.chg('W',-cost*.6,'Borrowing');c.chg('H',-14,'Injury, partly treated')}}},
+{id:'grand',name:'Grandchildren need care',level:'Meso',concept:'Linked lives · unpaid care',ph:[4],w:2,
+ text:c=>'Your children migrated for work and need you to raise the grandchildren.',
+ apply:c=>{c.chg('T',8,'Family centrality');c.chg('H',c.pr.g==='F'?-4:-1,'Physical load')}},
+{id:'dementia',name:'Cognitive decline',level:'Micro',concept:'Long-term care gap',ph:[4,5],w:3,wph:{4:1,5:4},
+ text:c=>'Memory fades. Who cares now?',
+ apply:c=>{c.chg('H',c.pol.ltc?-6:-10,'Cognitive decline'+(c.pol.ltc?' (care support)':''));if(c.st.T>=50){c.chg('T',-4,'Family stretched');c.note('Family steps in.')}else if(c.pol.ltc){c.note('Insured care reduces the isolation penalty.')}else{c.chg('H',-8,'Isolation');c.note('No one nearby. Decline speeds up.')}}},
+{id:'parentdeathc',name:'Death of a parent',level:'Micro',concept:'Timing · losing a parent at 10 vs 50',ph:[0,1],w:2,
+ text:c=>'A parent dies. Income and care at home fall apart.',
+ choices:[
+  {label:'Relatives take you in',desc:'Needs strong ties.',avail:c=>c.st.T>=45?true:'Your ties are too thin',apply:c=>{c.chg('T',-4,'Obligation');c.chg('W',-3,'Shared cost');c.chg('E',-1,'Disruption');c.chg('H',-2,'Grief')}},
+  {label:'Leave school and earn',desc:'Elder: children pulled into adult roles.',avail:()=>true,apply:c=>{c.chg('W',3,'Earnings');c.chg('E',-6,'Left school');c.chg('H',-2,'Grief and strain');c.chg('T',-2,'Loss')}},
+  {label:'Stay in school; the family borrows',desc:'Takes on 9 debt points; outstanding debt grows by 12% per life stage in this teaching model.',avail:()=>true,apply:c=>{c.chg('W',-9,'Borrowing');c.chg('T',-2,'Loss');c.chg('H',-2,'Grief')}}]},
+{id:'parentdeatha',name:'Death of a parent',level:'Micro',concept:'Timing · on-time loss in adulthood',ph:[2,3,4],w:2,wph:{2:2,3:3,4:3},
+ text:c=>'A parent dies. Grief, funeral costs and the family’s affairs.',
+ apply:c=>{c.chg('W',c.st.place==='R'?-5:-3,'Funeral and rites');c.chg('H',-2,'Grief');if(c.st.T>=55)c.chg('T',-2,'Support from kin softens it');else c.chg('T',-4,'Loss with little support')}},
+{id:'expelled',name:'Forced out of school',level:'Meso',concept:'Structure behind a personal trouble',ph:[0,1],w:2,wph:{0:1,1:3},
+ text:c=>c.pr.q<=2?'Unpaid fees. The school sends you home.':(c.pr.caste&&!c.pol.scholar?'Harassment and exclusion push you out of the classroom.':'A discipline dispute ends in expulsion.'),
+ choices:[
+  {label:'Re-enrol: pay arrears or appeal',desc:'Fees are waived if scholarships or school meals are in force.',avail:c=>(c.st.W>=6||c.pol.scholar||c.pol.child)?true:'You cannot pay the arrears',
+   apply:c=>{if(!(c.pol.scholar||c.pol.child))c.chg('W',-6,'Arrears and fees');c.chg('E',(c.pr.caste&&!c.pol.scholar)?-3:-2,'Months lost')}},
+  {label:'Switch to vocational training',desc:'A different route.',avail:()=>true,apply:c=>{c.chg('E',2,'Practical skills');c.chg('W',-2,'Course costs')}},
+  {label:'Start work',desc:'Money now, schooling gone.',avail:()=>true,apply:c=>{c.chg('W',5,'Earnings');c.chg('E',-6,'Schooling ends');c.chg('H',-1,'Early work')}}]},
+{id:'scholarship',name:'A scholarship or place comes through',level:'Meso',concept:'Agency within structure',ph:[0,1],w:2,
+ text:c=>'An entrance test or a fee waiver goes your way.',
+ apply:c=>{c.chg('E',(c.st.E>=25?7:4)*((c.pr.caste&&!c.pol.scholar)?.8:1),'Scholarship');c.chg('W',3,'Fees saved')}},
+{id:'apprentice',name:'An apprenticeship opens',level:'Meso',concept:'Social capital',ph:[1],w:2,
+ text:c=>'A relative or neighbour offers to teach you a trade.',
+ apply:c=>{c.chg('E',5,'Trade skills');c.chg('W',(c.st.place==='U'?4:3),'Stipend')}},
+{id:'addiction',name:'Drinking or drug use takes hold',level:'Micro',concept:'Module 2 · substance misuse as a main risk',ph:[1,2,3],w:2,
+ text:c=>'A habit grows. Friends, stress and easy access all play a part.',
+ choices:[
+  {label:'Seek help',desc:'Counselling and treatment cost money and nerve.',avail:()=>true,apply:c=>{c.chg('W',-4,'Treatment');c.chg('H',-2,'Withdrawal');c.chg('T',2,'Support group')}},
+  {label:'Carry on',desc:'Strong ties soften the fall. Thin ties do not.',avail:()=>true,apply:c=>{const m=c.st.T>=60?.5:1;c.chg('H',-7*m,'Substance harm');c.chg('W',-5*m,'Money drained');c.chg('T',-4*m,'Strained bonds')}}]},
+{id:'jobgain',name:'A good job offer',level:'Meso',concept:'Cumulative advantage · skills open doors',ph:[2,3],w:3,
+ text:c=>'A promotion or a better post comes up.',
+ apply:c=>{if(c.st.E>=45){c.chg('W',10,'Promotion');if(c.st.E>=50)c.st.P=Math.min(1,c.st.P+.1)}else c.chg('W',3,'Small raise')}},
+{id:'business',name:'A chance to start a business',level:'Meso',concept:'Agency within structure · risk is unequally cushioned',ph:[2,3],w:2,
+ text:c=>'A small shop or workshop could be yours with a loan.',
+ choices:[
+  {label:'Take the loan and start',desc:'Odds improve with skills and ties.',avail:()=>true,apply:c=>{const p=clamp(.25+.004*c.st.E+.002*c.st.T+(c.st.place==='U'?.08:0),.1,.75);if(c.u('biz')<p){c.chg('W',22,'The business takes off');c.chg('T',3,'Local standing')}else{c.chg('W',-12,'The business fails, loan remains');c.chg('H',-2,'Stress')}}},
+  {label:'Stay in wage work',desc:'Safe, and steady.',avail:()=>true,apply:c=>{c.chg('T',2,'Steady community life')}}]},
+{id:'divorce',name:'Marriage breaks down',level:'Meso',concept:'Linked lives · gendered cost',ph:[2,3],w:2,
+ text:c=>'A separation. Who keeps the home, the income and the standing?',
+ apply:c=>{if(c.pr.g==='F'){const m=c.pol.girls?.75:(c.pr.reg==='N'?1.1:1);c.chg('W',-8*m,'Lost household income');c.chg('T',-6*m,'Social stigma');c.chg('H',-3,'Strain')}else{c.chg('W',-4,'Settlement');c.chg('T',-4,'Fewer visits from kin')}}},
+{id:'disaster',name:'Flood or drought',level:'Macro',concept:'Historical time & place · shocks land unequally',ph:[2,3,4],w:2,
+ text:c=>c.pr.place==='R'?'A dry spell, flood or storm damages crops, boats or the home.':'A flood, heatwave or storm damages the home, shop or workplace.',
+ apply:c=>{const d=10*(c.st.place==='R'?1.4:.8)*(1-buf(c));c.chg('W',-d,'Losses, cushioned by savings and ties');if(c.st.place==='R')c.chg('H',-2,'Hardship')}},
+{id:'wagetheft',name:'Wages go unpaid',level:'Macro',concept:'Informal work · no record, no recourse',ph:[1,2,3],w:2,
+ text:c=>'A contractor disappears without paying.',
+ apply:c=>{if(c.st.P<.2)c.chg('W',-6,'No contract, no recourse');else c.chg('W',-1,'Formal contract, claim filed')}},
+{id:'sibling',name:'A sibling asks for money',level:'Meso',concept:'Linked lives · kin obligations',ph:[2,3],w:2,
+ text:c=>'A brother or sister is in trouble and asks for help.',
+ choices:[
+  {label:'Help them',desc:'Money out, ties up.',avail:()=>true,apply:c=>{c.chg('W',-8,'Help given');c.chg('T',6,'Gratitude and standing')}},
+  {label:'Say no',desc:'Keep the money, lose some trust.',avail:()=>true,apply:c=>{c.chg('T',-8,'Strained bond')}}]},
+{id:'training',name:'A training scheme reaches you',level:'Macro',concept:'Public policy',ph:[2,3],w:2,
+ text:c=>'An employer or government scheme offers a course.',
+ apply:c=>c.chg('E',c.st.place==='U'?6:4,'Course')},
+{id:'kidsedu',name:'Your child’s schooling',level:'Meso',concept:'Linked lives · transmission across generations',ph:[2,3],w:2,
+ text:c=>'Fees for tutoring and college come due.',
+ choices:[
+  {label:'Invest in their education',desc:'Costly now. Helps you in old age.',avail:()=>true,apply:c=>{c.chg('W',-8,'Fees');c.chg('T',4,'Pride and closeness');c.st.kidEdu=1}},
+  {label:'Have them earn instead',desc:'Money now, fewer options for them.',avail:()=>true,apply:c=>{c.chg('W',3,'Their earnings');c.chg('T',-2,'Resentment')}}]},
+{id:'eviction',name:'Forced to leave your home',level:'Macro',concept:'Housing policy',ph:[2,3,4],w:1,
+ text:c=>'Demolition, a dispute over title, or rent you cannot meet.',
+ apply:c=>{c.chg('W',-10*(1-buf(c)),'Loss, cushioned by savings and ties');c.chg('T',-4,'Neighbours scattered');c.chg('H',-2,'Upheaval')}},
+{id:'volunteer',name:'A role in the community',level:'Meso',concept:'Psychological ageing · purpose and engagement',ph:[3,4],w:2,
+ text:c=>'You are asked to mentor, lead a group or help at the temple, school or clinic.',
+ apply:c=>{c.chg('T',5,'Belonging');c.chg('H',2,'Purpose');c.chg('E',1,'Using what you know')}},
+{id:'camp',name:'A free health camp visits',level:'Macro',concept:'Public health access',ph:[3,4,5],w:2,
+ text:c=>'Screening and treatment reach your area for a few days.',
+ apply:c=>c.chg('H',c.st.place==='U'?6:4,'Screening and treatment')},
+{id:'pensionaware',name:'The old-age pension',level:'Macro',concept:'Module 3 · awareness and access barriers',ph:[4],w:2,
+ text:c=>'Do you know about the pension scheme and how to claim?',
+ apply:c=>{const aw=c.u('aware')<clamp(.22+(c.st.E>=40?.25:0)+(c.pol.pension?.45:0),0,.95); /* Calibrated to LASI/UNFPA 2023 (~22% baseline pension coverage among 60+) */if(aw){c.chg('W',5,'Pension claimed')}else c.note('You never learn how to claim. The money goes unclaimed.')}},
+{id:'friend',name:'A late friendship',level:'Meso',concept:'Social ageing',ph:[4,5],w:2,
+ text:c=>'A neighbour or a group becomes a daily presence.',
+ apply:c=>c.chg('T',7,'Companionship')},
+{id:'scam',name:'Fraud targets your savings',level:'Micro',concept:'Ageism · exploitation of the old',ph:[4,5],w:1,
+ text:c=>'A caller or a neighbour takes advantage.',
+ apply:c=>{const m=c.st.E>=50?.5:1;c.chg('W',-Math.max(4,.15*Math.max(c.st.W,0))*m,'Money lost');c.chg('T',-2,'Trust damaged')}},
+{id:'network',name:'Your network opens a door',level:'Meso',concept:'Social capital',ph:[1,2,3],w:2,
+ text:c=>'Someone in your circle puts in a word.',
+ apply:c=>{if(c.st.T>=50)c.chg('W',8,'Network opportunity');else c.chg('T',3,'A start')}},{id:'schoolmeal',name:'School meal changes the day',level:'Macro',concept:'Public provision · nutrition and attendance',ph:[0],w:3,
+ text:c=>c.pr.place==='R'?'The school meal is often the most reliable meal of the day.':'A school meal saves money, but attendance and quality vary.',
+ choices:[{label:'Attend regularly',desc:'Nutrition and learning improve together.',avail:()=>true,apply:c=>{c.chg('H',4,'Reliable meal');c.chg('E',3,'Attendance')}},{label:'Help at home instead',desc:'The household needs your time.',avail:()=>true,apply:c=>{c.chg('W',2,'Household contribution');c.chg('E',-2,'Missed classes')}}]},
+{id:'languagebarrier',name:'A language barrier in class',level:'Meso',concept:'Institutional fit · unequal access',ph:[0,1],w:2,
+ text:c=>'The school teaches in a language you do not use at home.',
+ choices:[{label:'Find a tutor or peer group',desc:'Costs time and sometimes money.',avail:()=>true,apply:c=>{c.chg('W',-2,'Learning support');c.chg('E',5,'Language confidence')}},{label:'Memorise and keep quiet',desc:'Avoid embarrassment, but gaps remain.',avail:()=>true,apply:c=>{c.chg('E',1,'Small progress');c.chg('T',-2,'Less classroom confidence')}}]},
+{id:'carework',name:'Care work fills your evenings',level:'Micro',concept:'Gendered unpaid labour',ph:[0,1],w:2,
+ text:c=>c.pr.g==='F'?'You are expected to cook, clean or care for a younger sibling after school.':'Household work competes with homework and rest.',
+ choices:[{label:'Share tasks and protect study time',desc:'Requires negotiation at home.',avail:()=>true,apply:c=>{c.chg('T',2,'Negotiated support');c.chg('E',3,'Study time')}},{label:'Take on the extra work',desc:'The household benefits; you lose time.',avail:()=>true,apply:c=>{c.chg('W',1,'Care enables others to work');c.chg('H',-2,'Fatigue');c.chg('E',-3,'Less study time')}}]},
+{id:'examfee',name:'Exam fees are due',level:'Meso',concept:'Small costs, unequal consequences',ph:[0,1],w:2,
+ text:c=>'A crucial exam requires travel, forms and fees.',
+ choices:[{label:'Pay and sit the exam',desc:'An investment with uncertain return.',avail:c=>c.st.W>=5?true:'Not enough cash without borrowing',apply:c=>{c.chg('W',-5,'Fees and travel');c.chg('E',c.st.E>=25?5:3,'Exam opportunity')}},{label:'Borrow to sit it',desc:'Keep the opportunity, take on debt.',avail:()=>true,apply:c=>{c.chg('W',-7,'Fees and borrowing cost');c.chg('E',4,'Exam opportunity')}},{label:'Skip this sitting',desc:'Avoid cost, lose the chance for now.',avail:()=>true,apply:c=>{c.chg('W',1,'Costs avoided');c.chg('E',-2,'Delayed qualification')}}]},
+{id:'peerpressure',name:'Friends pull you in two directions',level:'Micro',concept:'Peer effects and agency',ph:[0,1,2],w:2,
+ text:c=>'Friends offer belonging, but the group is taking risks with time or money.',
+ choices:[{label:'Join the group activity',desc:'Ties grow; other priorities may slip.',avail:()=>true,apply:c=>{c.chg('T',5,'Belonging');c.chg('E',-2,'Time diverted')}},{label:'Set a boundary',desc:'Protect your plans, risk friction.',avail:()=>true,apply:c=>{c.chg('E',2,'Time protected');c.chg('T',-1,'Temporary friction')}}]},
+{id:'firstphone',name:'A phone changes your options',level:'Meso',concept:'Technology access · unequal opportunity',ph:[1,2],w:2,
+ text:c=>'A basic phone could connect you to jobs, classes and relatives, but it costs money.',
+ choices:[{label:'Buy a phone',desc:'Pay now for access and information.',avail:c=>c.st.W>=8?true:'Not enough spare cash',apply:c=>{c.chg('W',-8,'Device and data');c.chg('E',4,'Digital access');c.chg('T',2,'Easier contact')}},{label:'Share a family phone',desc:'Cheaper, but access is limited.',avail:()=>true,apply:c=>{c.chg('E',2,'Some digital access');c.chg('T',1,'Shared contact')}},{label:'Go without one',desc:'Keep cash; miss some opportunities.',avail:()=>true,apply:c=>{c.chg('W',1,'Money retained')}}]},
+{id:'firstjob',name:'First job: stability or a bigger gamble?',level:'Meso',concept:'Precarious work and risk',ph:[1,2],w:3,
+ text:c=>'You can take a steady low-paid role or try irregular work with higher upside.',
+ choices:[{label:'Take the steady job',desc:'Predictable pay and a possible record of service.',avail:()=>true,apply:c=>{c.chg('W',5,'Reliable pay');c.chg('H',-1,'Work strain');if(c.st.E>=40)c.st.P=Math.min(1,c.st.P+.05)}},{label:'Try irregular high-upside work',desc:'Potentially better earnings, less certainty.',avail:()=>true,apply:c=>{if(c.u('firstjob')<.48){c.chg('W',10,'Good contract');c.chg('E',2,'Experience')}else{c.chg('W',-3,'Unpaid gap');c.chg('H',-2,'Stress')}}}]},
+{id:'dowrypressure',name:'Pressure to fund a wedding',level:'Meso',concept:'Gender norms and household assets',ph:[1,2,3],w:2,
+ text:c=>'Relatives expect the family to spend heavily on a wedding or transfer assets.',
+ choices:[{label:'Keep the ceremony modest',desc:'Protect savings; face criticism.',avail:()=>true,apply:c=>{c.chg('W',-2,'Modest ceremony');c.chg('T',-2,'Social criticism')}},{label:'Meet expectations',desc:'Social approval comes at a cost.',avail:()=>true,apply:c=>{c.chg('W',-10,'Wedding expenditure');c.chg('T',3,'Approval')}}]},
+{id:'housingmove',name:'A chance to move to better housing',level:'Meso',concept:'Place effects · housing and opportunity',ph:[1,2,3],w:2,
+ text:c=>'A safer or better-connected home is available, but rent or travel costs will rise.',
+ choices:[{label:'Move closer to jobs and services',desc:'Pay more, reduce access barriers.',avail:c=>c.st.W>=10?true:'Move-in costs are out of reach',apply:c=>{c.chg('W',-10,'Move-in costs');c.chg('E',3,'Access to jobs and services');c.chg('H',3,'Safer environment');c.st.place='U'}},{label:'Stay where costs are lower',desc:'Keep cash; retain current barriers.',avail:()=>true,apply:c=>{c.chg('W',2,'Lower housing cost');c.chg('T',2,'Familiar neighbours')}}]},
+{id:'careersponsor',name:'A senior offers a recommendation',level:'Meso',concept:'Social capital and gatekeeping',ph:[1,2,3],w:2,
+ text:c=>'A teacher, supervisor or local contact can recommend you for an opportunity.',
+ choices:[{label:'Ask for the recommendation',desc:'Most useful when skills are ready.',avail:()=>true,apply:c=>{if(c.st.E>=35){c.chg('W',7,'Opportunity secured');c.chg('T',3,'Professional tie')}else{c.chg('E',2,'Advice received');c.chg('T',2,'Contact maintained')}}},{label:'Decline; build experience first',desc:'No immediate gain, less pressure.',avail:()=>true,apply:c=>{c.chg('E',3,'Experience first')}}]},
+{id:'union',name:'Workers organise for fair pay',level:'Macro',concept:'Collective agency',ph:[2,3],w:2,
+ text:c=>'Coworkers discuss organising to demand reliable pay and safer conditions.',
+ choices:[{label:'Join the collective effort',desc:'Potential gains; some risk of conflict.',avail:()=>true,apply:c=>{c.chg('T',5,'Collective support');if(c.u('union')<.65){c.chg('W',5,'Improved terms');c.chg('H',2,'Safer work')}else c.chg('W',-2,'Hours or bonus lost')}},{label:'Stay out of it',desc:'Avoid immediate risk, little collective voice.',avail:()=>true,apply:c=>{c.chg('W',1,'No immediate disruption');c.chg('T',-1,'Distance from coworkers')}}]},
+{id:'loantrap',name:'A high-interest loan offer',level:'Meso',concept:'Debt traps and constrained choice',ph:[1,2,3],w:2,
+ text:c=>'A lender offers quick cash with steep repayment terms.',
+ choices:[{label:'Borrow for the urgent need',desc:'Solves today; repayment grows.',avail:()=>true,apply:c=>{c.chg('W',6,'Cash received');c.st.debt=(c.st.debt||0)+1;c.note('A high-cost debt obligation carries into later phases.')}},{label:'Ask a cooperative or relative',desc:'Slower, but terms may be safer.',avail:c=>c.st.T>=35?true:'Your support network is too thin',apply:c=>{c.chg('W',2,'Small low-cost loan');c.chg('T',-2,'Obligation')}},{label:'Delay the purchase',desc:'Avoid debt, accept the inconvenience.',avail:()=>true,apply:c=>{c.chg('H',-1,'Need remains unmet')}}]},
+{id:'careleave',name:'A child or relative needs daily care',level:'Micro',concept:'Care economy and gendered costs',ph:[2,3],w:2,
+ text:c=>'Someone in the household needs daily care just as work demands increase.',
+ choices:[{label:'Reduce work hours',desc:'Protect care, lose earnings.',avail:()=>true,apply:c=>{c.chg('W',-5,'Fewer work hours');c.chg('T',4,'Care provided');c.chg('H',-1,'Fatigue')}},{label:'Pay for help',desc:'Protect work time if you can afford it.',avail:c=>c.st.W>=8?true:'Paid help is unaffordable',apply:c=>{c.chg('W',-8,'Care costs');c.chg('H',2,'Less strain')}},{label:'Share care across the family',desc:'Depends on relatives being available.',avail:c=>c.st.T>=40?true:'Limited support available',apply:c=>{c.chg('T',-2,'Family coordination');c.chg('W',-2,'Some lost hours')}}]},
+{id:'smallbusiness',name:'A local market opens up',level:'Meso',concept:'Opportunity depends on networks and capital',ph:[2,3],w:2,
+ text:c=>'A new market, road or online platform brings customers within reach.',
+ choices:[{label:'Invest in stock or tools',desc:'Upside depends on skills and connections.',avail:c=>c.st.W>=8?true:'Not enough working capital',apply:c=>{c.chg('W',-8,'Initial investment');if(c.u('market')<clamp(.3+c.st.E*.003+c.st.T*.002,.25,.75))c.chg('W',18,'New customers');else c.chg('W',-4,'Slow sales')}},{label:'Partner with someone local',desc:'Share risk and returns.',avail:c=>c.st.T>=35?true:'No reliable partner in reach',apply:c=>{c.chg('W',5,'Shared opportunity');c.chg('T',3,'Business partnership')}},{label:'Keep current work',desc:'No new risk, no extra upside.',avail:()=>true,apply:c=>c.chg('W',2,'Steady income')}]},
+{id:'digitalfraud',name:'A digital payment goes wrong',level:'Micro',concept:'Digital inclusion and consumer protection',ph:[2,3,4],w:2,
+ text:c=>'A mistaken transfer or fraudulent message puts money at risk.',
+ choices:[{label:'Report it quickly',desc:'Literacy and records improve your odds.',avail:()=>true,apply:c=>{if(c.st.E>=35){c.chg('W',-1,'Most funds recovered')}else{c.chg('W',-5,'Partial loss');c.chg('T',-1,'Trust shaken')}}},{label:'Ignore it',desc:'Avoid the hassle, recovery becomes harder.',avail:()=>true,apply:c=>{c.chg('W',-7,'Funds lost')}}]},
+{id:'heatwave',name:'A dangerous heatwave',level:'Macro',concept:'Climate risk and unequal protection',ph:[1,2,3,4],w:2,
+ text:c=>c.st.place==='R'?'Outdoor work continues despite dangerous heat.':'Crowded housing and hot workplaces make rest difficult.',
+ choices:[{label:'Stop work during peak heat',desc:'Protect health, lose some income.',avail:()=>true,apply:c=>{c.chg('H',4,'Heat exposure avoided');c.chg('W',-3,'Lost wages')}},{label:'Keep working',desc:'Income today, health risk later.',avail:()=>true,apply:c=>{c.chg('W',3,'Wages earned');c.chg('H',-6,'Heat stress')}}]},
+{id:'floodrelief',name:'Relief arrives after a disaster',level:'Macro',concept:'State capacity and unequal recovery',ph:[1,2,3,4],w:2,
+ text:c=>'A flood or storm damages the area. Relief is announced, but access depends on records and location.',
+ choices:[{label:'Apply with documents',desc:'Formal records help you claim support.',avail:()=>true,apply:c=>{if(c.st.E>=25||c.st.P>.2)c.chg('W',7,'Relief received');else c.chg('W',2,'Partial relief');c.chg('T',1,'Community coordination')}},{label:'Rely on neighbours',desc:'Immediate help, limited resources.',avail:()=>true,apply:c=>{c.chg('W',2,'Shared supplies');c.chg('T',3,'Mutual aid')}}]},
+{id:'promotionbias',name:'Promotion decision',level:'Meso',concept:'Discrimination in institutions',ph:[2,3],w:2,
+ text:c=>'A promotion is available. Informal networks and bias may matter as much as performance.',
+ choices:[{label:'Apply and document your work',desc:'A stronger record improves your case.',avail:()=>true,apply:c=>{if(c.st.E>=45&&(!c.pr.caste||c.pol.antiDisc)&&!(c.pr.g==='F'&&!c.pol.girls)){c.chg('W',10,'Promotion');c.chg('E',2,'Responsibility gained')}else{c.chg('W',3,'Small raise');c.note('Structural barriers limit the return despite your effort.')}}},{label:'Seek a transfer or new employer',desc:'Costly to switch, possible fresh start.',avail:()=>true,apply:c=>{c.chg('W',-2,'Transition cost');c.chg('E',3,'New experience')}}]},
+{id:'familyland',name:'Land title comes under dispute',level:'Meso',concept:'Property rights and unequal bargaining power',ph:[2,3,4],w:2,
+ text:c=>'A relative challenges the household claim to land or a home.',
+ choices:[{label:'Seek legal help',desc:'Records and money improve the chance of resolution.',avail:c=>c.st.W>=5?true:'Legal help is unaffordable',apply:c=>{c.chg('W',-5,'Legal and travel costs');if(c.st.E>=35||c.pol.antiDisc)c.chg('W',8,'Title defended');else c.chg('W',-4,'Dispute remains')}},{label:'Settle informally',desc:'Faster, but you may concede value.',avail:()=>true,apply:c=>{c.chg('W',-4,'Unfavourable settlement');c.chg('T',-2,'Family tension')}},{label:'Do nothing',desc:'Avoid immediate cost, risk losing access.',avail:()=>true,apply:c=>{c.chg('W',-7,'Lost use or claim')}}]},
+{id:'pensionpaperwork',name:'Pension paperwork is missing',level:'Meso',concept:'Administrative burden',ph:[4],w:2,
+ text:c=>'You may qualify for a pension, but identity, bank or residence records are inconsistent.',
+ choices:[{label:'Make repeated trips to fix it',desc:'Time and travel costs.',avail:()=>true,apply:c=>{c.chg('W',-3,'Travel and paperwork');if(c.st.E>=30||c.pol.pension)c.chg('W',6,'Pension activated');else c.note('The claim is delayed again.')}},{label:'Ask a local help desk',desc:'Depends on whether one is reachable.',avail:c=>c.st.place==='U'||c.pol.pension?true:'No nearby help desk',apply:c=>{c.chg('W',-1,'Small costs');c.chg('W',5,'Claim supported');c.chg('T',2,'Local assistance')}},{label:'Give up for now',desc:'Keep today’s energy, lose income.',avail:()=>true,apply:c=>{c.note('Eligible support remains unclaimed this phase.')}}]},
+{id:'retirementchoice',name:'When to stop working',level:'Micro',concept:'Retirement, health and economic necessity',ph:[3,4],w:2,
+ text:c=>'You are tired, but household expenses continue. There is no single retirement age that fits everyone.',
+ choices:[{label:'Keep working part-time',desc:'Income continues, recovery time is limited.',avail:()=>true,apply:c=>{c.chg('W',5,'Part-time earnings');c.chg('H',-2,'Work strain')}},{label:'Reduce work and protect health',desc:'Less income, more time to recover.',avail:()=>true,apply:c=>{c.chg('H',4,'Rest and care');c.chg('W',-3,'Lower earnings')}},{label:'Train for lighter work',desc:'Requires some skills and time.',avail:()=>true,apply:c=>{c.chg('E',3,'Adapted skills');c.chg('W',-2,'Training time')}}]},
+{id:'communityclinic',name:'A clinic starts regular outreach',level:'Macro',concept:'Public services and prevention',ph:[2,3,4,5],w:2,
+ text:c=>'A mobile clinic begins regular visits, but people must know when and where it comes.',
+ apply:c=>{const gain=c.st.E>=25?7:4;c.chg('H',gain+(c.pol.uhc?2:0),'Preventive care');if(c.st.T>=45)c.chg('T',2,'Neighbour shares information')}},
+{id:'widowrights',name:'A widow’s claim to the home',level:'Meso',concept:'Gender, inheritance and security',ph:[3,4],w:2,
+ text:c=>c.pr.g==='F'?'After a family loss, relatives question your right to remain in the home.':'A relative’s widow faces pressure to leave the family home.',
+ choices:[{label:'Assert the legal claim',desc:'Needs documents, support or policy protection.',avail:()=>true,apply:c=>{if(c.pol.girls||c.pol.antiDisc||c.st.E>=40){c.chg('W',6,'Housing rights defended');c.chg('T',-1,'Family conflict')}else{c.chg('W',-6,'Forced settlement');c.chg('T',-4,'Isolation')}}},{label:'Accept a family arrangement',desc:'Avoid confrontation, surrender some control.',avail:()=>true,apply:c=>{c.chg('W',-3,'Reduced control over assets');c.chg('T',2,'Family peace')}}]},
+{id:'grandparentrole',name:'A grandparent becomes indispensable',level:'Meso',concept:'Intergenerational care and reciprocity',ph:[4],w:2,
+ text:c=>'Your family needs you to help with childcare, errands or advice.',
+ choices:[{label:'Take an active role',desc:'Meaning and closeness, but a physical load.',avail:()=>true,apply:c=>{c.chg('T',6,'Family connection');c.chg('H',-2,'Care workload')}},{label:'Set limits and share tasks',desc:'Protect your health, negotiate expectations.',avail:()=>true,apply:c=>{c.chg('H',3,'Rest protected');c.chg('T',-1,'Some tension')}}]},
+{id:'loneliness',name:'Days become quieter',level:'Micro',concept:'Social isolation and ageing',ph:[4,5],w:2,
+ text:c=>'Friends move, relatives are busy, and daily contact becomes less frequent.',
+ choices:[{label:'Join a local group',desc:'Requires accessible transport and energy.',avail:()=>true,apply:c=>{c.chg('T',5,'New routine');c.chg('H',2,'Purpose')}},{label:'Call family regularly',desc:'Works when phone access and relationships remain.',avail:()=>true,apply:c=>{c.chg('T',3,'Regular contact')}},{label:'Stay home',desc:'No immediate effort, isolation may deepen.',avail:()=>true,apply:c=>{c.chg('T',-5,'Fewer contacts');c.chg('H',-2,'Low activity')}}]},
+{id:'medicinecost',name:'Medicine prices rise',level:'Macro',concept:'Health costs and financial protection',ph:[3,4,5],w:2,
+ text:c=>'A regular medicine becomes more expensive just as other costs rise.',
+ choices:[{label:'Buy the full prescription',desc:'Protect treatment, reduce savings.',avail:c=>c.st.W>=6||c.pol.uhc?true:'Cannot afford the full amount',apply:c=>{c.chg('W',c.pol.uhc?-2:-6,'Medicine cost');c.chg('H',3,'Treatment maintained')}},{label:'Ask about generic alternatives',desc:'Savings depend on availability and advice.',avail:()=>true,apply:c=>{c.chg('W',-2,'Lower medicine cost');c.chg('H',2,'Treatment continued')}},{label:'Skip doses to stretch supply',desc:'Cash saved now, health risk later.',avail:()=>true,apply:c=>{c.chg('W',1,'Cash retained');c.chg('H',-6,'Interrupted treatment')}}]},
+{id:'legalidentity',name:'Your identity records do not match',level:'Macro',concept:'Administrative exclusion',ph:[1,2,3,4],w:2,
+ text:c=>'A mismatch in name, address or documents blocks a service or benefit.',
+ choices:[{label:'Correct the records',desc:'Time-consuming, but may unlock future services.',avail:()=>true,apply:c=>{c.chg('W',-2,'Travel and paperwork');c.chg('E',2,'Navigating systems');if(c.pol.pension)c.chg('W',3,'Benefit access')}},{label:'Use an intermediary',desc:'Faster, but may cost money or invite exploitation.',avail:()=>true,apply:c=>{c.chg('W',-4,'Intermediary cost');c.chg('T',-1,'Dependence')}},{label:'Leave it unresolved',desc:'Avoid immediate hassle; access remains blocked.',avail:()=>true,apply:c=>{c.note('The service remains inaccessible for now.')}}]},
+{id:'remittance',name:'A remittance arrives late',level:'Meso',concept:'Migration, dependence and risk',ph:[3,4],w:2,
+ text:c=>'A relative working far away usually sends money, but this month the transfer does not arrive on time.',
+ choices:[{label:'Use emergency savings',desc:'Protect essentials, draw down your buffer.',avail:c=>c.st.W>0?true:'No savings to draw on',apply:c=>{c.chg('W',-5,'Emergency savings used')}},{label:'Borrow from neighbours',desc:'Meet immediate needs, owe a favour.',avail:c=>c.st.T>=35?true:'Limited local support',apply:c=>{c.chg('W',-2,'Small borrowing');c.chg('T',-3,'Obligation')}},{label:'Cut spending',desc:'Avoid debt, sacrifice comfort or nutrition.',avail:()=>true,apply:c=>{c.chg('H',-3,'Reduced consumption')}}]},
+{id:'careworker',name:'A care worker becomes available',level:'Macro',concept:'Care infrastructure and family burden',ph:[4,5],w:2,
+ text:c=>'A trained care worker starts serving your neighbourhood, but availability and affordability differ.',
+ choices:[{label:'Arrange regular help',desc:'Reduces strain if the household can pay.',avail:c=>c.st.W>=6||c.pol.ltc?true:'Regular help is unaffordable',apply:c=>{c.chg('W',c.pol.ltc?-2:-6,'Care service');c.chg('H',4,'Better support');c.chg('T',2,'Relief for family')}},{label:'Use occasional visits',desc:'Partial help at lower cost.',avail:()=>true,apply:c=>{c.chg('W',-2,'Occasional care');c.chg('H',2,'Some support')}},{label:'Continue unpaid family care',desc:'No bill, but time and health costs remain.',avail:()=>true,apply:c=>{c.chg('H',-3,'Caregiver strain');c.chg('T',2,'Family presence')}}]},
+{id:'localtransport',name:'A new bus route connects the area',level:'Macro',concept:'Infrastructure and access',ph:[0,1,2,3,4],w:2,
+ text:c=>'A bus route connects your neighbourhood to a school, hospital or job centre.',
+ apply:c=>{c.chg('E',c.st.E<40?3:1,'Access to education and training');c.chg('H',2,'Easier access to services');if(c.st.place==='R')c.chg('W',-1,'Travel cost falls')}},
+{id:'cropprice',name:'Crop prices swing sharply',level:'Macro',concept:'Market exposure and livelihood diversification',ph:[1,2,3],w:2,
+ text:c=>c.pr.house&&/cultivat|fishing|coastal/i.test(HOUSEHOLDS[c.pr.house]?.name||'')?'Prices or buyers change suddenly, making this season hard to predict.':'Prices rise and fall; even non-farm households feel the effect through food costs and local demand.',
+ choices:[{label:'Diversify income',desc:'Requires time or a new skill.',avail:()=>true,apply:c=>{c.chg('E',2,'New income option');c.chg('W',-2,'Transition cost')}},{label:'Stay with the familiar livelihood',desc:'Avoid transition cost, retain exposure.',avail:()=>true,apply:c=>{if(c.u('crop')<.5)c.chg('W',6,'Favourable market');else c.chg('W',-7,'Bad market')}}]}
+,{id:'echoStudy',name:'The studying years open a door',level:'Life echo',concept:'Education, accumulated skills and delayed returns',ph:[2],w:1,story:true,storyKey:'studyDoor',storyCondition:(life,ph)=>ph===2&&life.actions.slice(0,2).some(a=>Array.isArray(a)&&a.includes('study')),
+ text:c=>'You kept making time for learning when it competed with other needs. A local employer now has a trainee opening, and a short bridge course is also available.',
+ choices:[{label:'Apply for the trainee role',desc:'Your earlier learning helps, but the offer depends on your current skills.',avail:()=>true,apply:c=>{if(c.st.E>=35){c.chg('W',8,'Skills used in a job application');c.chg('T',2,'New work contact')}else{c.chg('W',2,'Entry-level paid placement');c.chg('E',3,'Learning on the job')}}},{label:'Take the bridge course first',desc:'Pay a small cost now to strengthen your options.',avail:c=>c.st.W>=3?true:'The course fee is difficult to cover',apply:c=>{c.chg('W',-3,'Course fee');c.chg('E',6,'Bridge qualification')}},{label:'Keep the work you know',desc:'Reliable routine, fewer immediate risks.',avail:()=>true,apply:c=>{c.chg('W',3,'Existing earnings');c.chg('H',-1,'Extra workload')}}]},
+{id:'echoNetwork',name:'Someone remembers the help you gave',level:'Life echo',concept:'Social ties, information and referrals',ph:[3],w:1,story:true,storyKey:'networkDoor',storyCondition:(life,ph)=>ph===3&&!life.echoSeen?.networkDoor&&(life.actions.slice(0,3).reduce((n,a)=>n+(Array.isArray(a)?a.filter(x=>x==='nurture').length:0),0)>=2||life.reports.slice(0,3).some(r=>r.events.some(e=>['mentor','friend','network','careersponsor'].includes(e.id)))),
+ text:c=>'A former classmate, neighbour or colleague gets in touch with a lead. The relationship is useful because you stayed connected, but a lead is not a guarantee.',
+ choices:[{label:'Ask for an introduction',desc:'Best when your skills and the contact fit the opening.',avail:()=>true,apply:c=>{if(c.st.E>=35&&c.st.T>=35){c.chg('W',8,'Referral opens a paid opportunity');c.chg('E',2,'Experience from the new role')}else{c.chg('T',3,'Contact shares information');c.chg('E',2,'Useful advice')}}},{label:'Offer help in return',desc:'Invest time in keeping the relationship mutual.',avail:()=>true,apply:c=>{c.chg('T',5,'Reciprocal support');c.chg('W',-2,'Time away from paid work')}},{label:'Pursue another route',desc:'Protect your independence; lose this particular lead.',avail:()=>true,apply:c=>{c.chg('E',3,'Independent search');c.chg('T',-1,'Opportunity fades')}}]},
+{id:'echoReserve',name:'A costly repair tests your buffer',level:'Life echo',concept:'Savings, resilience and access to opportunity',ph:[4],w:1,story:true,storyKey:'reserveTest',storyCondition:(life,ph)=>ph===4&&!life.echoSeen?.reserveTest&&life.actions.slice(0,4).reduce((n,a)=>n+(Array.isArray(a)?a.filter(x=>x==='invest').length:0),0)>=2,
+ text:c=>'You made room for saving and investing earlier. Now a major repair arrives just as a useful opportunity appears. The buffer gives you options, not certainty.',
+ choices:[{label:'Use some savings on the opportunity',desc:'A modest risk that could supplement later-life income.',avail:c=>c.st.W>=8?true:'The buffer is too small for this option',apply:c=>{c.chg('W',-8,'Up-front cost');if(c.u('reserve')<.58){c.chg('W',12,'Opportunity pays off')}else{c.chg('W',-3,'The return is disappointing')}c.chg('E',2,'New experience')}},{label:'Keep the buffer intact',desc:'Reduce risk and accept a slower path.',avail:()=>true,apply:c=>{c.chg('W',2,'Savings preserved');c.chg('H',1,'Less stress from financial risk')}},{label:'Borrow for the repair',desc:'Handle the immediate problem, carry an obligation.',avail:()=>true,apply:c=>{c.chg('W',3,'Borrowing covers the bill');c.st.debt=(c.st.debt||0)+1;c.note('The new obligation remains part of your later-life finances.')}}]},
+{id:'echoCare',name:'Your circle shows up in return',level:'Life echo',concept:'Reciprocity, social support and ageing',ph:[5],w:1,story:true,storyKey:'careReturns',storyCondition:(life,ph)=>ph===5&&!life.echoSeen?.careReturns&&(life.actions.slice(0,5).reduce((n,a)=>n+(Array.isArray(a)?a.filter(x=>x==='nurture').length:0),0)>=2||life.st.T>=65),
+ text:c=>'People you stayed in touch with offer practical help: a ride, a meal, or someone to sit with you at an appointment. The support is meaningful, though it cannot solve every need.',
+ choices:[{label:'Accept help and share the load',desc:'Let others contribute while you keep some independence.',avail:()=>true,apply:c=>{c.chg('H',4,'Practical support makes the day easier');c.chg('T',3,'Connection reinforced')}},{label:'Accept only the help you need',desc:'Protect independence while allowing some support.',avail:()=>true,apply:c=>{c.chg('H',2,'A little help with daily tasks');c.chg('T',1,'Connection maintained')}},{label:'Manage alone for now',desc:'Keep control, but support remains at a distance.',avail:()=>true,apply:c=>{c.chg('H',-2,'Extra effort');c.chg('T',-2,'Fewer chances to connect')}}]}
+];
+
+/* ---------- life object ---------- */
+function newLife(pr,seed,polSched){
+ const life={pr,seed,polSched:polSched||{},st:initState(pr),phase:0,hist:[],actions:[],choices:{},reports:[],done:false,widowSeen:false,echoSeen:{}};
+ life.hist.push(snap(life.st));return life;
+}
+const snap=s=>({W:s.W,H:s.H,E:s.E,T:s.T,P:s.P});
+function perFor(life,ph){
+ const card=PERIOD[life.pr.cohort][ph];return card.mods?Object.assign({cover:card.cover},card.mods):{cover:card.cover};
+}
+function ctxFor(life,ph,log){
+ const pol=polAt(life.polSched,ph),per=perFor(life,ph);
+ return {st:life.st,pr:life.pr,pol,per,ph,
+  chg(s,d,l){const b=life.st[s];applyDelta(life.st,{[s]:d});log.push({stat:s,delta:life.st[s]-b,label:l});},
+  note(t){log.push({note:t});},u(tag){return rngFor(life.seed,ph,tag)();}};
+}
+function drawEvents(life,ph){
+ const rng=rngFor(life.seed,ph,'ev');const n=ph===3?4:3;
+ if(!life.echoSeen)life.echoSeen={};
+ const eligibleStories=EVENTS.filter(e=>e.story&&e.ph.includes(ph)&&!life.echoSeen[e.storyKey]&&e.storyCondition(life,ph));
+ let story=null;
+ if(eligibleStories.length){const total=eligibleStories.reduce((a,e)=>a+e.w,0);let r=rng()*total;story=eligibleStories.find(e=>(r-=e.w)<=0)||eligibleStories[eligibleStories.length-1];}
+ let pool=EVENTS.filter(e=>!e.story&&e.ph.includes(ph)).map(e=>({e,w:(e.wph&&e.wph[ph])||e.w}));
+ const out=[];const ordinaryCount=story?Math.max(0,n-1):n;
+ for(let i=0;i<ordinaryCount&&pool.length;i++){
+  const tot=pool.reduce((a,x)=>a+x.w,0);let r=rng()*tot,k=0;
+  for(;k<pool.length;k++){r-=pool[k].w;if(r<=0)break;}
+  k=Math.min(k,pool.length-1);out.push(pool[k].e);pool.splice(k,1);
+ }
+ if(story){const slot=Math.floor(rng()*(out.length+1));out.splice(slot,0,story);life.echoSeen[story.storyKey]=true;}
+ return out;
+}
+function widowCheck(life,ph){
+ if(ph<4)return null;const st=life.st,pr=life.pr;if(st.widowed)return null;
+ const u=rngFor(life.seed,ph,'widow')();
+ const p=pr.g==='F'?(ph===4?.54:.72):(ph===4?.16:.25); /* Calibrated to LASI Wave 1 (2017-18): 54% F vs 16% M widowed at 60+, reaching ~87% F vs ~37% M at 80+ */
+ return u<p;
+}
+
+/* ---- phase execution ---- */
+/* begin: apply actions, return {events, report}. */
+function beginPhase(life,actionIds){
+ const ph=life.phase,st=life.st;
+ const rep={ph,start:snap(st),lines:[],events:[],period:PERIOD[life.pr.cohort][ph]};
+ life.cur=rep;life.pendingEvents=drawEvents(life,ph);life.evIdx=0;
+ life.actions[ph]=actionIds.slice();
+ const pol=polAt(life.polSched,ph),per=perFor(life,ph);
+ // policy start-up effects (early investment)
+ if(pol.child&&ph<=1&&life.polSched.child!=null){const poor=life.pr.q<=3;const l=[];const c=ctxFor(life,ph,l);c.chg('H',poor?5:3,'Early-Life Investment');c.chg('E',poor?4:2,'Early-Life Investment');rep.lines.push({title:'Policy: Early-Life Investment',log:l});}
+ actionIds.forEach((id,k)=>{
+  const u=rngFor(life.seed,ph,'form'+k)();
+  const r=calc(id,st,life.pr,pol,per,ph,u);const l=[];
+  applyDelta(st,r.d);
+  for(const s of ['W','H','E','T'])if(Math.abs(r.d[s])>=.05)l.push({stat:s,delta:r.d[s]});
+  if(id==='work'&&r.ex.formal)l.push({note:'Formal job. Pension rights grow.'});
+  rep.lines.push({title:ACTIONS[id].name,log:l,action:id});
+ });
+ // period shock
+ const card=PERIOD[life.pr.cohort][ph];
+ if(card.shock){const l=[];card.shock(ctxFor(life,ph,l));rep.lines.push({title:'Era: '+card.title,log:l,era:true});}
+ return {events:life.pendingEvents};
+}
+function currentEvent(life){return life.pendingEvents[life.evIdx]||null;}
+function availChoices(life,ev){
+ const ph=life.phase;const c=ctxFor(life,ph,[]);
+ return ev.choices.map(ch=>{const a=ch.avail(c);return {label:ch.label,desc:ch.desc,ok:a===true,reason:a===true?'':a};});
+}
+function resolveEvent(life,choiceIdx){
+ const ev=life.pendingEvents[life.evIdx];const ph=life.phase;const l=[];const c=ctxFor(life,ph,l);
+ const rec={id:ev.id,name:ev.name,level:ev.level,concept:ev.concept,text:ev.text(c),log:l};
+ if(ev.choices){
+  let i=choiceIdx==null?0:choiceIdx;
+  if(!ev.choices[i]||ev.choices[i].avail(c)!==true)i=ev.choices.findIndex(x=>x.avail(c)===true);
+  if(i<0){c.note('No available response; the event passes without a choice.');}else{life.choices[ph+':'+ev.id]=i;rec.choice=ev.choices[i].label;ev.choices[i].apply(c);}
+ }else ev.apply(c);
+ life.cur.events.push(rec);life.evIdx++;
+}
+function finishPhase(life){
+ const ph=life.phase,st=life.st,pr=life.pr,rep=life.cur;
+ const pol=polAt(life.polSched,ph),per=perFor(life,ph);const l=[];const c=ctxFor(life,ph,l);
+ // widowhood (structural)
+ const wd=widowCheck(life,ph);
+ if(wd){st.widowed=true;const F=pr.g==='F';
+  st.W=st.W>0?st.W*(F?(pol.girls?.9:.8):.9):st.W;
+  c.chg('T',F?-8:-5,'Loss of spouse');c.chg('H',-2,'Grief and strain');
+  if(F&&pr.caste&&pr.q<=2&&st.place==='R'&&!pol.girls)c.chg('W',-5,'Dispossession, lost standing');
+  rep.widow={F};}
+ // old-age income
+ if(ph>=4){
+  const careNeed=Math.max(0,(55-st.H)*.10)+st.chronic*.8;
+  const need=PH[ph].cost+careNeed*(pol.ltc ? .25 : 1); // LTCI covers 75% of the modelled additional care burden, not ordinary living costs.
+  const sp=pol.pension?10:2;
+  const work=st.H>=45?2.5*(ph===4?1:.3):0;
+  const own=20*st.P+sp+work+.12*Math.max(st.W,0);
+  const tot=own;
+  st.own=own;
+  if(ph===4)st.indep=own>=need*INDEP_K;
+  let gap=need-own;
+  if(gap>0){const fam=Math.min(gap,9*(st.T/100)*(st.widowed?.6:1));gap-=fam;
+   if(gap>0){c.chg('W',-gap,'Unmet living costs');c.chg('H',-gap*.5,'Deprivation');}}
+  else st.W+=Math.min(-gap,6);
+  // direct add of pension flows to W so savers keep value
+  rep.income={own,need};
+ }else{
+  c.chg('W',-PH[ph].cost,'Cost of living');
+ }
+ // compounding
+ const b=st.W;
+ if(st.W>0)st.W+=st.W*(.08+.10*Math.min(st.W,100)/100);else st.W+=st.W*.12; // Illustrative per-life-stage returns/debt growth, not annual rates.
+ st.W=clamp(st.W,-40,300);
+ if(Math.abs(st.W-b)>=.5)l.push({stat:'W',delta:st.W-b,label:b>0?'Returns on assets':'Interest on debt'});
+ // health decay
+ let dec=PH[ph].decay*(1+.1*st.scars)*(1+.08*st.chronic);
+ const dep=(st.W<5?.4:st.W<15?.15:0)+(st.E<25?.1:0)-(st.T>=60?.1:0);
+ dec*=1+dep;
+ if(pol.ltc&&ph>=3&&st.H<55)dec*=.85;
+ if(st.H>0){const bh=st.H;st.H=clamp(st.H-dec,0,100);if(dec>=.5)l.push({stat:'H',delta:st.H-bh,label:'Wear of years'+(dep>.1?' (worse under deprivation)':'')});}
+ rep.lines.push({title:'End of phase',log:l});
+ // mortality
+ const rng=rngFor(life.seed,ph,'mort');const u=rng(),u2=rng();
+ if(ph<5){
+  let p=PH[ph].haz*Math.exp(-.045*(st.H-50))*(1+.06*st.scars)*(1+.05*st.chronic)*(per.haz||1);
+  // Mortality is not directly multiplied by gender or region: those effects are
+  // represented only through modeled exposures/resources, avoiding an unsupported
+  // universal sex-region mortality claim. Health, scars, chronic conditions and era remain.
+  p=Math.min(p,.9);
+  if(u<p){st.alive=false;st.deathAge=PH[ph].ages[0]+Math.floor(u2*(PH[ph].ages[1]-PH[ph].ages[0]+1));}
+ }else{
+  const f=clamp((st.H-8)*.22+(u2-.5)*9-st.chronic*1.0,0,20);
+  st.alive=false;st.deathAge=75+Math.round(f);
+ }
+ rep.end=snap(st);rep.alive=st.alive;rep.deathAge=st.deathAge;
+ life.hist.push(snap(st));life.reports.push(rep);
+ if(!st.alive||ph===5){life.done=true;}else life.phase++;
+ return rep;
+}
+let INDEP_K=2.5;
+function setIndepK(k){INDEP_K=k;}
+
+function runPhase(life,actionIds,chooser){
+ const r=beginPhase(life,actionIds);
+ let ev;
+ while((ev=currentEvent(life))){
+  let idx=null;
+  if(ev.choices){idx=chooser?chooser(ev,life):(life.choices[life.phase+':'+ev.id]);if(idx==null)idx=0;}
+  resolveEvent(life,idx);
+ }
+ return finishPhase(life);
+}
+
+/* ---------- bots ---------- */
+const STRATS={
+ balanced:{H:1,E:1,W:1,T:.8},
+ scholar:{H:.8,E:2.2,W:.8,T:.6},
+ secure:{H:1.3,E:.6,W:1.2,T:1},
+ anchor:{H:.9,E:.5,W:.8,T:2},
+ builder:{H:.6,E:.9,W:2,T:.4},
+ healthy:{H:2,E:.4,W:.8,T:.7}
+};
+function utility(st,w,ph,cost){
+ const f=x=>Math.sqrt(clamp(x,0,100)/100)*10;
+ const we=ph<=2?w.E:w.E*.2;
+ const wl=st.W<cost?2.5:1;
+ const fw=st.W<0?st.W*.4:f(Math.min(st.W,100));
+ return w.H*f(st.H)+we*f(st.E)+w.T*f(st.T)+w.W*wl*fw+ (ph<=3?3*st.P*w.W:0);
+}
+function botActions(life,strategy,noise,rng){
+ const ph=life.phase,pr=life.pr;const pol=polAt(life.polSched,ph),per=perFor(life,ph);
+ const w=STRATS[strategy||'balanced'];const st={...life.st};const acts=[];
+ const ids=ph===0?['study','work','health']:Object.keys(ACTIONS);
+ for(let k=0;k<PH[ph].ap;k++){
+  let best=null,bs=-1e9;
+  for(const id of ids){
+   if(ph===0&&id==='work'&&pr.q>=3)continue;
+   const r=calc(id,st,pr,pol,per,ph,.5);const d={...r.d};
+   if(id==='work'&&r.ex.pFormal!=null){d.W=r.ex.incInformal*(1+.6*r.ex.pFormal);d.P=.2*r.ex.pFormal;}
+   const s2={...st};applyDelta(s2,d);
+   let sc=utility(s2,w,ph,PH[ph].cost+6)-utility(st,w,ph,PH[ph].cost+6);
+   if(noise)sc*=1+noise*(rng()-.5)*2;
+   if(sc>bs){bs=sc;best=id;}
+  }
+  acts.push(best);const r=calc(best,st,pr,pol,per,ph,.5);applyDelta(st,r.d);
+ }
+ return acts;
+}
+function botLife(pr,seed,polSched,strategy,noise){
+ const life=newLife(pr,seed,polSched);const rng=rngFor(seed,99,'bot');
+ while(!life.done){
+  runPhase(life,botActions(life,strategy,noise,rng),(ev)=>botChoice(ev,life));
+ }
+ return life;
+}
+function botChoice(ev,life){
+ const av=availChoices(life,ev);
+ const pref={famshock:[1,2,0],migrate:[1,0],parentcare:[0,1,2],layoff:[0,1,2],parentdeathc:[0,2,1],expelled:[0,1,2],addiction:[0,1],business:[1,0],sibling:[0,1],kidsedu:[0,1]}[ev.id]||[0,1,2];
+ for(const i of pref)if(av[i]&&av[i].ok)return i;
+ return 0;
+}
+
+/* ---------- summaries ---------- */
+function grade(H){
+ if(H>=70)return {n:0,label:'Independent'};
+ if(H>=55)return {n:1,label:'Assistance required'};
+ if(H>=45)return {n:2,label:'Care level 1'};
+ if(H>=35)return {n:3,label:'Care level 2'};
+ if(H>=25)return {n:4,label:'Care level 3'};
+ if(H>=15)return {n:5,label:'Care level 4'};
+ return {n:6,label:'Care level 5'};
+}
+function summarize(life){
+ const st=life.st,h=life.hist;const age=st.deathAge;
+ const Hs=h.map(x=>x.H);let hly=0;
+ for(let i=0;i<life.reports.length;i++){
+  const len=PH[i].ages[1]-PH[i].ages[0]+1;let yrs=len;
+  if(i===life.reports.length-1&&life.reports[i].deathAge!=null){yrs=Math.max(0,life.reports[i].deathAge-PH[i].ages[0]+1);}
+  const h0=h[i].H,h1=h[i+1].H,threshold=55;let fraction=0;
+  if(h0>=threshold&&h1>=threshold)fraction=1;
+  else if(h0<threshold&&h1<threshold)fraction=0;
+  else if(h1!==h0){const cross=clamp((threshold-h0)/(h1-h0),0,1);fraction=h0>=threshold?cross:1-cross;}
+  hly+=yrs*fraction;
+ }
+ let traj='Died before later life';
+ if(age>=60){
+  const h4=h[5]?h[5].H:Hs[Hs.length-1];
+  if(h4>=50&&h[4].H>=55)traj='Successful';else if(h4<25||h[4].H-h4>40)traj='Pathological';else traj='Usual';
+ }
+ return {age,hly,grade:grade(Hs[Hs.length-1]),traj,indep:st.indep,final:snap(st),hist:h,Hs};
+}
+const ASPIRATIONS={
+ scholar:{name:'The Professional',text:'Skills 55+ and a formal-job pension track by age 39.',strat:'scholar',
+  test:l=>l.hist.length>=4&&l.hist[3].E>=55&&l.hist[3].P>=.2},
+ secure:{name:'Secure at 75',text:'Reach the 60–74 phase with income covering modelled needs and health at 50+.',strat:'secure',
+  test:l=>l.hist.length>=6&&l.st.indep===true&&l.hist[5].H>=50},
+ anchor:{name:'Anchor of the Family',text:'Ties 70+ and out of debt at 60.',strat:'anchor',
+  test:l=>l.hist.length>=5&&l.hist[4].T>=70&&l.hist[4].W>=0},
+ builder:{name:'The Builder',text:'Wealth 100+ by the end of midlife.',strat:'builder',
+  test:l=>l.hist.length>=5&&l.hist[4].W>=100},
+ healthy:{name:'Long and Well',text:'Live to at least 80 and finish the 60–74 phase with health at 45+.',strat:'healthy',
+  test:l=>l.hist.length>=6&&l.st.deathAge>=80&&l.hist[5].H>=45}
+};
+function odds(pr,asp,polSched,n,seed0){
+ let hit=0;const a=ASPIRATIONS[asp];
+ for(let i=0;i<n;i++){const l=botLife(pr,'odds'+seed0+'_'+i,polSched,a.strat,.15);if(a.test(l))hit++;}
+ return {hit,n,p:hit/n};
+}
+function counterfactual(life,pr2){
+ const l2=newLife(pr2,life.seed,life.polSched);
+ for(let ph=0;ph<life.actions.length&&!l2.done;ph++){
+  runPhase(l2,life.actions[ph],(ev)=>{const i=life.choices[ph+':'+ev.id];return i==null?0:i;});
+ }
+ // if the other life outlives the original, continue it with the balanced strategy
+ const rng=rngFor(life.seed,98,'cf');
+ while(!l2.done)runPhase(l2,botActions(l2,'balanced',0,rng),(ev)=>botChoice(ev,l2));
+ return l2;
+}
+if(typeof module!=='undefined'&&0)module.exports={PH,POLICIES,COHORTS,ACTIONS,EVENTS,PERIOD,ASPIRATIONS,randomProfile,newLife,botLife,botActions,summarize,odds,counterfactual,setIndepK,rngFor,runPhase,calc,polAt,perFor,grade,STRATS};
+
+</script>
+<script>
+const $=document.getElementById('app');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const f1=x=>(Math.round(x*10)/10).toFixed(1);
+const sg=x=>(x>=0?'+':'−')+f1(Math.abs(x));
+const QN=['Poorest fifth','Second fifth','Middle fifth','Fourth fifth','Richest fifth'];
+const STATC={W:'Wealth',H:'Health',E:'Skills',T:'Ties'};
+let S={view:'home'};
+const mean=a=>a.reduce((x,y)=>x+y,0)/(a.length||1);
+const sd=a=>{const m=mean(a);return Math.sqrt(mean(a.map(x=>(x-m)**2)))};
+const pct=(a,p)=>{const s=a.slice().sort((x,y)=>x-y);return s[Math.min(s.length-1,Math.floor(p*s.length))]};
+
+function profChips(pr){
+ const c=[];
+ const hh=HOUSEHOLDS[pr.house];if(hh)c.push(`<span class="chip">${esc(hh.name)}</span>`);
+ c.push(`<span class="chip">${QN[pr.q-1]}</span>`);
+ c.push(`<span class="chip">${pr.g==='F'?'Woman':'Man'}</span>`);
+ c.push(`<span class="chip">${pr.place==='R'?'Rural':'Urban'}</span>`);
+ c.push(`<span class="chip">${pr.reg==='S'?'South (illustrative profile)':'North (illustrative profile)'}</span>`);
+ if(pr.caste)c.push(`<span class="chip bad">Marginalised caste</span>`);
+ return c.join('');
+}
+function statBars(st,before){
+ const rows=['W','H','E','T'].map(k=>{
+  const v=st[k],mx=k==='W'?150:100;const w=Math.max(0,Math.min(100,v/mx*100));
+  const d=before?v-before[k]:0;
+  return `<div class="bar ${k}"><span>${STATC[k]}</span><div class="track"><div class="fill" style="width:${w}%"></div></div><span class="num">${f1(v)}${before&&Math.abs(d)>=.05?` <span class="d" style="color:${d>=0?'var(--good)':'var(--warn)'}">${sg(d)}</span>`:''}</span></div>`;
+ }).join('');
+ return `<div class="bars">${rows}</div>`;
+}
+function deltaChips(log){
+ return log.filter(l=>l.stat).map(l=>`<span class="delta ${l.delta<0?'neg':''} ${l.stat}" title="${esc(l.label||'')}">${STATC[l.stat]} ${sg(l.delta)}${l.label?` · ${esc(l.label)}`:''}</span>`).join(' ')+
+  log.filter(l=>l.note).map(l=>`<span class="small muted">${esc(l.note)}</span>`).join(' ');
+}
+function yrs(cohort,ph){const b=COHORTS[cohort].born;return `${b+PH[ph].ages[0]}–${b+PH[ph].ages[1]}`;}
+
+/* ---------- charts ---------- */
+function lineChart(series,{w=440,h=150,ymax=100,ymin=0,labels=[],fmt=f1}={}){
+ const m={l:34,r:84,t:10,b:24},iw=w-m.l-m.r,ih=h-m.t-m.b;
+ const n=Math.max(...series.map(s=>s.v.length));
+ const X=i=>m.l+(n<2?0:i/(n-1)*iw),Y=v=>m.t+ih-(v-ymin)/(ymax-ymin)*ih;
+ let g=`<line class="ax" x1="${m.l}" x2="${w-m.r}" y1="${Y(ymin)}" y2="${Y(ymin)}"/>`;
+ [ymin,(ymin+ymax)/2,ymax].forEach(t=>{g+=`<line class="ax" x1="${m.l}" x2="${w-m.r}" y1="${Y(t)}" y2="${Y(t)}" stroke-dasharray="2 3"/><text x="${m.l-6}" y="${Y(t)+4}" text-anchor="end">${Math.round(t)}</text>`});
+ labels.forEach((l,i)=>{if(i<n)g+=`<text x="${X(i)}" y="${h-6}" text-anchor="middle">${l}</text>`});
+ series.forEach(s=>{
+  const pts=s.v.map((v,i)=>`${X(i)},${Y(v)}`).join(' ');
+  g+=`<polyline points="${pts}" fill="none" style="stroke:${s.c}" stroke-width="2" stroke-linejoin="round"/>`;
+  const L=s.v.length-1;g+=`<circle cx="${X(L)}" cy="${Y(s.v[L])}" r="4" style="fill:${s.c}"/><text class="lbl" x="${X(L)+8}" y="${Y(s.v[L])+4}">${s.name} ${fmt(s.v[L])}</text>`;
+ });
+ return `<svg class="svgc" style="width:100%;max-width:${w}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="Line chart">${g}</svg>`;
+}
+/* range bars per quintile: p10–p90 span, median tick, mean dot; global mean line */
+function rangeChart(groups,{w=520,unit='',max=100}={}){
+ const m={l:110,r:20,t:10,b:26},rh=30,h=m.t+m.b+rh*groups.length,iw=w-m.l-m.r;
+ const X=v=>m.l+v/max*iw;let g='';
+ for(let t=0;t<=max;t+=20)g+=`<line class="ax" x1="${X(t)}" x2="${X(t)}" y1="${m.t}" y2="${h-m.b}" stroke-dasharray="2 3"/><text x="${X(t)}" y="${h-8}" text-anchor="middle">${t}</text>`;
+ groups.forEach((r,i)=>{const y=m.t+i*rh+rh/2;
+  g+=`<text class="lbl" x="${m.l-8}" y="${y+4}" text-anchor="end">${r.label}</text>`;
+  g+=`<rect x="${X(r.p10)}" y="${y-5}" width="${Math.max(2,X(r.p90)-X(r.p10))}" height="10" rx="3" style="fill:var(--accent);opacity:.28"/>`;
+  g+=`<line x1="${X(r.med)}" x2="${X(r.med)}" y1="${y-8}" y2="${y+8}" style="stroke:var(--accent)" stroke-width="2"/>`;
+  g+=`<circle cx="${X(r.mean)}" cy="${y}" r="4" style="fill:var(--ink)"/>`;
+ });
+ return `<svg class="svgc" style="width:100%;max-width:${w}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="Range chart by group">${g}</svg>`;
+}
+function stripChart(items,meanV,{w=520,max=60,unit='yrs'}={}){
+ const m={l:96,r:16,t:10,b:26},rh=32,h=m.t+m.b+rh*items.length,iw=w-m.l-m.r;const X=v=>m.l+Math.min(v,max)/max*iw;let g='';
+ for(let t=0;t<=max;t+=10)g+=`<line class="ax" x1="${X(t)}" x2="${X(t)}" y1="${m.t}" y2="${h-m.b}" stroke-dasharray="2 3"/><text x="${X(t)}" y="${h-8}" text-anchor="middle">${t}</text>`;
+ g+=`<line x1="${X(meanV)}" x2="${X(meanV)}" y1="${m.t}" y2="${h-m.b}" style="stroke:var(--warn)" stroke-width="1.5"/><text x="${X(meanV)}" y="${m.t+8}" style="fill:var(--warn)" text-anchor="${meanV>max*.7?'end':'start'}" dx="${meanV>max*.7?-4:4}">mean ${f1(meanV)}</text>`;
+ items.forEach((it,i)=>{const y=m.t+i*rh+rh/2+6;g+=`<text class="lbl" x="${m.l-8}" y="${y+4}" text-anchor="end">${esc(it.name)}</text><rect x="${m.l}" y="${y-6}" width="${X(it.v)-m.l}" height="12" rx="3" style="fill:var(--accent)"/><text x="${X(it.v)+6}" y="${y+4}" class="lbl">${f1(it.v)}</text>`;});
+ return `<svg class="svgc" style="width:100%;max-width:${w}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="Healthy years by player">${g}</svg>`;
+}
+
+/* A six-stop chapter map makes progress visible without adding explanatory text to every screen. */
+function journeyMarkup(ph, statusText='Current chapter'){
+ const idx=Math.max(0,Math.min(5,Number(ph)||0));
+ return `<section class="journey-card fade" aria-label="Life journey progress"><div class="journey-head"><span class="journey-title">Your life journey</span><strong>Chapter ${idx+1} of 6 · ${esc(statusText)}</strong></div><div class="journey-stops">${PH.map((stage,i)=>`<div class="journey-stop ${i<idx?'done':i===idx?'active':''}" aria-current="${i===idx?'step':'false'}"><span class="journey-dot">${i<idx?'✓':String(i+1).padStart(2,'0')}</span><span>${esc(stage.name)}</span><small>${stage.ages[0]}–${stage.ages[1]}</small></div>`).join('')}</div></section>`;
+}
+function outcomeImpacts(log){
+ const sum={W:0,H:0,E:0,T:0};
+ (log||[]).forEach(x=>{if(x.stat&&Object.prototype.hasOwnProperty.call(sum,x.stat))sum[x.stat]+=Number(x.delta)||0;});
+ const changed=Object.keys(sum).filter(k=>Math.abs(sum[k])>=.05);
+ const max=Math.max(1,...changed.map(k=>Math.abs(sum[k])));
+ const names={W:'Wealth',H:'Health',E:'Skills',T:'Ties'};
+ const cards=changed.map(k=>`<div class="impact-stat ${k}"><span>${names[k]}</span><b>${sg(sum[k])}</b><div class="impact-track"><i style="--impact-width:${Math.max(8,Math.abs(sum[k])/max*100)}%"></i></div></div>`).join('');
+ const reasons=[...new Set((log||[]).filter(x=>x.stat&&x.label).map(x=>x.label))].slice(0,3);
+ return `<div class="outcome-wrap"><div class="outcome-lead"><span class="outcome-mark" aria-hidden="true">↗</span><div><strong>Your choice has landed</strong><small>Here's what shifted in the model.</small></div></div>${changed.length?`<div class="impact-grid">${cards}</div>`:'<p class="small muted">This event did not directly change the four tracked measures.</p>'}${reasons.length?`<p class="impact-reasons"><b>What drove it?</b> ${reasons.map(esc).join(' · ')}.</p>`:''}</div>`;
+}
+function topb(){return `<div class="topbar"><span class="brand">Bounded Agency</span><div class="row"><button data-a="home">Home</button><button data-a="theme" aria-label="Toggle theme">Theme</button></div></div>`;}
+function photoFailed(img){
+ // A blocked or unavailable remote photo must never affect game navigation/state.
+ if(img && img.parentElement && img.closest('figure')) img.closest('figure').remove();
+ else if(img) img.remove();
+ const note=document.getElementById('photo-load-note');
+ if(note) note.hidden=false;
+}
+function home(){
+ return topb()+`
+ <div class="card hero fade"><div style="display:flex;flex-direction:column;gap:15px;min-width:0">
+  <span class="hero-kicker">A life-course strategy game</span>
+  <h1>Same effort.<br>Different lives.</h1>
+  <p class="muted">Make choices, face curveballs, and see how the life you start with shapes the life you build.</p>
+  <div class="row"><button class="primary" data-a="setup">Start a game <span aria-hidden="true">→</span></button><button data-a="lab">Explore the lab</button></div>
+  <div class="chips"><span class="chip">1–4 players</span><span class="chip">6 life stages</span><span class="chip">Choices have consequences</span></div>
+ </div>
+ <div class="hero-photos" role="group" aria-label="Photographs of everyday family life in India">
+  <img class="photo-main" src="https://cdn.prod.website-files.com/61f959fc59e3a9f78fb275d1/643ce5b32ec7630b4d6d5c60_Hero%20Picture%201-p-1600.jpg" alt="A multigenerational rural Indian family sitting together outside their home" loading="eager" referrerpolicy="no-referrer" onerror="photoFailed(this)">
+  <img class="photo-small" src="https://media.assettype.com/deccanherald%2F2024-07%2F24a05a44-5020-4b45-84c8-4b1fb126dff9%2Ffile7v7ij7m4yy118bsurde6.jpg?auto=format%2Ccompress&fit=max&w=1200" alt="Children helping at a family street-vending stall" loading="lazy" referrerpolicy="no-referrer" onerror="photoFailed(this)">
+  <img class="photo-small" src="https://www.all-about-photo.com/images/photographer/G/PHOT-aparna-gautam-12.webp" alt="A family walking through a busy urban market" loading="lazy" referrerpolicy="no-referrer" onerror="photoFailed(this)">
+  <div class="photo-caption">Every household has a story. Every choice changes what comes next.</div>
+ </div><p id="photo-load-note" class="small muted" hidden>Some photos could not be loaded from their source. The game is still playable; this does not restart the game.</p></div>
+ <div class="grid fade">
+  <div class="card home-step"><span class="step-no">01</span><h3>Choose your dream</h3><p class="small muted">Decide what success means before you see your starting point.</p></div>
+  <div class="card home-step"><span class="step-no">02</span><h3>Draw a life</h3><p class="small muted">Get a household, resources and circumstances you didn't choose.</p></div>
+  <div class="card home-step"><span class="step-no">03</span><h3>Make the calls</h3><p class="small muted">Balance today's needs against tomorrow's possibilities.</p></div>
+ </div>
+ <div class="card" style="background:var(--wash);border-color:transparent"><div class="row"><div class="grow"><span class="eyebrow">What the game explores</span><h3>Choices matter. Starting points matter, too.</h3><p class="small muted">Compare life paths, spot turning points and see how small advantages or setbacks can build over time. Numbers are teaching-model points, not real-world predictions.</p></div><div aria-hidden="true" style="font-size:2.2rem;letter-spacing:.15em">↗ ◌ ↘</div></div></div>
+ <details class="card"><summary><b>Model notes</b></summary><p class="small muted"><b>Empirical calibration &amp; teaching scope:</b> Key demographic and ageing parameters are anchored to published Indian data: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9365624/" target="_blank" rel="noopener">LASI Wave 1 (2017–18)</a> for widowhood (54% of women vs. 16% of men aged 60+; 87% vs. 37% at 80+), <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9310107/" target="_blank" rel="noopener">chronic condition prevalence</a> (32.7% hypertension, 14.2% diabetes), and low baseline pension coverage (~22%); <a href="https://data.who.int/countries/356" target="_blank" rel="noopener">WHO India (2023)</a> for life expectancy (71.0 years) vs. healthy life expectancy (60.6 years); and <a href="https://india.unfpa.org/en/publications/caring-our-elders-institutional-responses-india-ageing-report-2023" target="_blank" rel="noopener">UNFPA India Ageing Report 2023</a> for 2050 ageing projections (20.8% aged 60+, 279% growth in 80+). Wealth, health, skills and ties remain abstract teaching-model points rather than rupees or clinical scores.</p><p class="small"><b>Recovery:</b> Game progress is autosaved in this browser tab and restored after a reload, so an image-permission or preview refresh should not return you to the home screen. If a remote photo is blocked, only that image is removed; the game continues. No browser-permission API is called by the game code.</p><p class="small"><b>Photo matching:</b> Event and household images are explicitly mapped, never chosen by broad keyword matching. A photo appears with its event and may reappear in the final Life Album only if it represents a distinct recorded turning point; within that album, the same image is not repeated. Missing or blocked photos are removed without interrupting play. All photos are illustrative, not depictions of a player’s household.</p><p class="small"><b>Home-screen photo credits:</b> <a href="https://www.audaciousproject.org/grantees/jan-sahas" target="_blank" rel="noopener">Jan Sahas / The Audacious Project</a> (family); <a href="https://www.deccanherald.com/india/karnataka/bengaluru/bbmp-to-start-survey-of-street-vendors-soon-2-3113592" target="_blank" rel="noopener">Deccan Herald</a> (street-vending scene); <a href="https://www.all-about-photo.com/images/photographer/G/PHOT-aparna-gautam-12.webp" target="_blank" rel="noopener">Aparna Gautam / All About Photo</a> (urban-market scene).</p><p class="small"><b>Historical references:</b> <a href="https://www.who.int/news-room/questions-and-answers/item/smallpox" target="_blank" rel="noopener">WHO: smallpox eradication</a>; <a href="https://india.unfpa.org/en/publications/caring-our-elders-institutional-responses-india-ageing-report-2023" target="_blank" rel="noopener">UNFPA India: India Ageing Report 2023</a>.</p></details>`;
+}
+function setup(){
+ const n=S.n||3,mode=S.allocMode||'random';
+ const saved=S.manualProfiles||{};
+ let names='';for(let i=0;i<n;i++)names+=`<input type="text" id="pn${i}" value="${esc((S.names&&S.names[i])||'Player '+(i+1))}" aria-label="Player ${i+1} name">`;
+ const manual=mode==='manual'?`<div class="card" style="background:var(--wash)"><h3>Assign starting conditions</h3><p class="small muted">Choose each player's household and starting profile. Location and region follow the selected household. These are the circumstances each player begins life with; they do not determine later choices.</p><div class="grid">${Array.from({length:n},(_,i)=>{const m=saved[i]||{};return `<div class="card"><b>Player ${i+1}</b><label for="mh${i}">Household background</label><select id="mh${i}">${HOUSEHOLD_IDS.map(id=>`<option value="${id}" ${((m.house||HOUSEHOLD_IDS[i%HOUSEHOLD_IDS.length])===id)?'selected':''}>${esc(HOUSEHOLDS[id].name)}</option>`).join('')}</select><label for="mq${i}">Starting wealth</label><select id="mq${i}">${[1,2,3,4,5].map(q=>`<option value="${q}" ${(+(m.q||3)===q)?'selected':''}>${q} · ${QN[q-1]}</option>`).join('')}</select><label for="mg${i}">Gender</label><select id="mg${i}"><option value="M" ${m.g!=='F'?'selected':''}>Man</option><option value="F" ${m.g==='F'?'selected':''}>Woman</option></select><label for="mc${i}">Social identity</label><select id="mc${i}"><option value="0" ${!m.caste?'selected':''}>Socially advantaged</option><option value="1" ${m.caste?'selected':''}>Marginalised caste</option></select></div>`}).join('')}</div></div>`:'';
+ return topb()+`<div class="card fade"><span class="eyebrow">Setup</span><h2>Who is at the table?</h2>
+ <div class="row"><label for="np">Players</label><select id="np">${[1,2,3,4].map(k=>`<option ${k===n?'selected':''}>${k}</option>`).join('')}</select></div>
+ <div class="grid">${names}</div>
+ <div class="row"><label for="co">Birth cohort for the whole table</label><select id="co"><option value="" ${!S.cohortChoice?'selected':''}>Random</option>${Object.entries(COHORTS).map(([k,c])=>`<option value="${k}" ${S.cohortChoice===k?'selected':''}>${c.label} (${c.tag})</option>`).join('')}</select></div>
+ <div class="row"><label for="allocMode">Starting conditions</label><select id="allocMode"><option value="random" ${mode==='random'?'selected':''}>Randomly allot</option><option value="manual" ${mode==='manual'?'selected':''}>Assign manually</option></select></div>
+ ${manual}
+ <p class="small muted">Randomly allot preserves the existing birth-lottery system: household settings are shuffled without replacement, while wealth, gender and social identity are drawn randomly. Assign manually lets you set each player's household, wealth quintile, gender and social identity. Location and region are determined by the household. Everyone shares one birth cohort. Pass the device between turns. The table shares a <b>policy budget of 3</b>.</p>
+ <button class="primary" data-a="start">Begin</button></div>`;
+}
+function saveSetupInputs(){
+ const g=id=>document.getElementById(id);
+ if(!g('np'))return;
+ S.n=+g('np').value;
+ S.names=Array.from({length:S.n},(_,i)=>g('pn'+i)?.value||'Player '+(i+1));
+ S.allocMode=g('allocMode')?.value||S.allocMode||'random';
+ S.cohortChoice=g('co')?.value||'';
+ S.manualProfiles=S.manualProfiles||{};
+ for(let i=0;i<S.n;i++){
+  if(g('mh'+i))S.manualProfiles[i]={house:g('mh'+i).value,q:+g('mq'+i).value,g:g('mg'+i).value,caste:+g('mc'+i).value};
+ }
+}
+function aspire(){
+ const p=S.players[S.pi];
+ return topb()+`<div class="card fade"><span class="eyebrow">${esc(p.name)} · before you are born</span><h2>What do you want your life to add up to?</h2>
+ <p class="muted small">Choose first. You will not know your circumstances yet. This is the dream (a “possible self”) you will try to reach.</p>
+ <div class="grid">${Object.entries(ASPIRATIONS).map(([k,a])=>`<button data-a="asp" data-k="${k}"><b>${a.name}</b><br><span class="small muted">${a.text}</span></button>`).join('')}</div></div>`;
+}
+/* Exact-context photo library. There is deliberately no keyword-based fallback:
+   an event receives only a photo that has been explicitly matched to it. */
+const PHOTO_ASSETS={
+ ruralFamily:{src:'https://cdn.prod.website-files.com/61f959fc59e3a9f78fb275d1/643ce5b32ec7630b4d6d5c60_Hero%20Picture%201-p-1600.jpg',alt:'A multigenerational rural Indian family sitting together outside their home',credit:'Jan Sahas / The Audacious Project',href:'https://www.audaciousproject.org/grantees/jan-sahas'},
+ streetStall:{src:'https://media.assettype.com/deccanherald%2F2024-07%2F24a05a44-5020-4b45-84c8-4b1fb126dff9%2Ffile7v7ij7m4yy118bsurde6.jpg?auto=format%2Ccompress&fit=max&w=1200',alt:'A street-vending scene in India',credit:'Deccan Herald',href:'https://www.deccanherald.com/india/karnataka/bengaluru/bbmp-to-start-survey-of-street-vendors-soon-2-3113592'},
+ cityMarket:{src:'https://www.all-about-photo.com/images/photographer/G/PHOT-aparna-gautam-12.webp',alt:'Everyday life in an urban Indian market',credit:'Aparna Gautam / All About Photo',href:'https://www.all-about-photo.com/images/photographer/G/PHOT-aparna-gautam-12.webp'},
+ farmDrought:{src:'https://media.assettype.com/nationalherald/2018-12/e6791582-4d95-4ace-ae0e-d9cee2c7e879/farmer.jpg?auto=format%2Ccompress&enlarge=true&fit=max&h=675&w=1200',alt:'A farmer examining a drought-struck field with dry, cracked soil',credit:'National Herald',href:'https://www.nationalheraldindia.com/national/decline-in-agricultural-revenues-force-farmers-to-become-labourers'},
+ classroom:{src:'https://www.sakshipost.com/sites/default/files/article_images/2025/06/19/989786-school-reopen-2-1750313282.jpg',alt:'Children learning in an Indian government-school classroom',credit:'Sakshi Post',href:'https://www.sakshipost.com/news/education/chhattisgarh-changes-school-timings-amid-heatwave-alert-check-new-schedule-420246'},
+ teacherSupport:{src:'https://media.licdn.com/dms/image/v2/D5622AQEUr9SJpamPOA/feedshare-shrink_800/B56Z0tyPOCJsAc-/0/1774589637769?e=2147483647&t=7TtqKgmLSzbd1mtqqeTs6ppAj7jLj2vO5HBl5dkvXUY&v=beta',alt:'A teacher guiding students through a lesson in class',credit:'Rising India Updates',href:'https://www.linkedin.com/posts/risingindiaupdates_delhi-has-banned-students-teachers-and-activity-7443537013703888896-9KN1'},
+ vaccination:{src:'https://c.ndtvimg.com/2026-03/hh4jeov_indian-vaccination-health-camp_625x300_17_March_26.png?im=FeatureCrop%2Calgorithm%3Ddnn%2Cwidth%3D240%2Cheight%3D180%3Fq%3D50',alt:'Health workers running a vaccination camp in India',credit:'NDTV',href:'https://www.ndtv.com/health/indias-immunisation-journey-one-of-verified-milestone-by-milestone-achievement-11226764'},
+ newborn:{src:'https://bmhchandigarh.com/images/hero/obgyn-mother-newborn.jpg',alt:'Parents holding their newborn baby in a hospital room',credit:'BMH Chandigarh',href:'https://bmhchandigarh.com/'},
+ bus:{src:'https://images.hindustantimes.com/rf/image_size_960x540/HT/p2/2019/03/15/Pictures/bus-stops_4e111bf0-46e0-11e9-9b94-c272560e6ac5.jpg',alt:'Passengers boarding a city bus in India',credit:'Hindustan Times',href:'https://www.hindustantimes.com/delhi-news/delhi-to-get-4-000-buses-bus-stops-overlook-the-differently-abled/story-pvJrzhy0dfvWsZC37Kb6AP.html'},
+ schoolMeal:{src:'https://images.indianexpress.com/2023/04/mid-day-meal.jpg?w=1200',alt:'Schoolchildren being served a midday meal at an Indian school',credit:'The Indian Express',href:'https://indianexpress.com/article/cities/chandigarh/haryana-government-increases-midday-meal-budget-by-over-58-percent-8542436/lite/'},
+ kirana:{src:'https://etimg.etb2bimg.com/thumb/msid-121943321%2Cwidth-1200%2Cheight-900%2Cresizemode-4/.jpg',alt:'A shopkeeper serving a customer in a small Indian grocery shop',credit:'ET Retail / The Economic Times',href:'https://retail.economictimes.indiatimes.com/news/industry/kirana-stores-try-hard-to-stay-in-game/121943321'},
+ streetFood:{src:'https://gumlet.assettype.com/downtoearth/2024-08-10/lj1rg4f2/Street%20Food%20Vendor.jpg?auto=format%2Ccompress&enlarge=true&fit=max&h=675&w=1200',alt:'A street-food seller working at a roadside stall in India',credit:'Down To Earth',href:'https://www.downtoearth.org.in/food/try-to-work-with-informal-food-sector-not-get-rid-of-it-delia-grace'},
+ digitalPay:{src:'https://riktrtfgpnrqiwatppcq.supabase.co/storage/v1/object/public/blog-assets/inline/india-digital-public-infrastructure-upi-digilocker-abdm-ondc-bhashini-vertex3pro-slot2.png',alt:'A customer using a smartphone to make a QR-code payment at an Indian shop',credit:'TrueJobs',href:'https://truejobs.co.in/blog/india-digital-public-infrastructure-upi-digilocker-abdm-ondc-bhashini'},
+ construction:{src:'https://bsmedia.business-standard.com/_media/bs/img/article/2026-02/02/full/1770055343-1631.jpg',alt:'Construction workers carrying sand at an urban building site',credit:'Business Standard',href:'https://www.business-standard.com/opinion/editorial/labour-market-friction-india-needs-more-jobs-with-better-work-conditions-126041601302_1.html'},
+ heatwave:{src:'https://c.ndtvimg.com/2022-05/1t23uq3g_reuters-india-heatwave_625x300_16_May_22.jpg?downsize=545%3A307',alt:'Construction workers doing strenuous outdoor work during an Indian heatwave',credit:'NDTV / Reuters',href:'https://www.ndtv.com/india-news/if-we-wont-work-what-will-we-eat-poor-bear-brunt-of-heatwave-2979277'},
+ womenGroup:{src:'https://images.bhaskarassets.com/thumb/1200x900/web2images/521/2025/09/16/f1bbe612-cdf2-4369-87c4-ede3e14e26da_1758029231975.jpg',alt:'Women meeting in a village self-help group and discussing their accounts',credit:'Dainik Bhaskar',href:'https://www.bhaskar.com/local/uttar-pradesh/jaunpur/dobhi/news/self-help-group-meeting-in-panihar-village-of-jaunpur-135936276.html'},
+ migrantTrain:{src:'https://media.assettype.com/deccanherald/import/sites/dh/files/articleimages/2022/05/08/railway-platform-dh-1107496-1652012900.png?auto=format%2Ccompress&enlarge=true&fit=max&h=675&w=1200',alt:'A traveller wheeling a suitcase along an Indian railway platform',credit:'Deccan Herald',href:'https://www.deccanherald.com/india/indian-railways-to-train-frontline-staff-to-help-passengers-1107496.html'},
+ factory:{src:'https://www.rkenterprisesmanpower.com/images/gallery-2.jpg',alt:'Workers operating machinery on a factory shop floor',credit:'RK Enterprises',href:'https://www.rkenterprisesmanpower.com/'},
+ interview:{src:'https://akm-img-a-in.tosshub.com/indiatoday/images/story/202604/while-a-small-but-growing-group-of-organisations-is-redesigning-processes-to-unlock-this-talent-pool-30170111-16x9_0.png?VersionId=jV4Q8P6zHvvY7Ki3z5NaEK6xm10a2oDu&size=690%3A388',alt:'A job candidate seated with a resume during a professional interview',credit:'India Today',href:'https://www.indiatoday.in/jobs/story/neurodiverse-workforce-india-why-hidden-talent-is-still-missing-from-jobs-infc-2903843-2026-04-30'},
+ exam:{src:'https://images.hindustantimes.com/rf/image_size_960x540/HT/p2/2019/01/27/Pictures/ssc-board-examination-2017_0d143d5c-222e-11e9-8b30-9519234c3e24.jpg',alt:'Students writing an examination in a classroom',credit:'Hindustan Times',href:'https://www.hindustantimes.com/pune-news/pune-students-take-note-sample-question-papers-for-class-10-now-live/story-mMR30gzVDxZiq806Li7oBP.html'},
+ wedding:{src:'https://images.squarespace-cdn.com/content/v1/6744250b81521d675423a80c/1736839635655-PPQLA1BE9DATVKQUKL8L/Sindhi-Wedding-in-Nagpur-2-5.jpeg',alt:'A bride being helped by family members during wedding preparations',credit:'Knotsbyamp',href:'https://www.knotsbyamp.com/blog/sindhi-wedding-in-nagpur'},
+ pharmacy:{src:'https://framerusercontent.com/images/kz1eXX5iRjhbhlswDwW1HJK9YhQ.png',alt:'A pharmacist selecting medicines from shelves at a pharmacy',credit:'Pharmacy Pro',href:'https://pharmacypro.io/blog/5-main-challenges-for-pharmacies-in-india-navigating-a-changing-landscape'},
+ doctorPatient:{src:'https://www.tenderpalm.com/images/general-surgery/Centre-for-General-Laparoscopic-and-Robotic-Surgery/Clinics.jpg',alt:'A doctor discussing treatment notes with an older patient',credit:'Tender Palm Hospital',href:'https://www.tenderpalm.com/centre-for-general-laparoscopic-and-robotic-surgery'},
+ ruralClinic:{src:'https://4.bp.blogspot.com/-QH3g0HbGVYk/VzrcZ0_w5DI/AAAAAAAACc8/eEL_gc-JRko6sjLCW-diTtTtJ8Va7LKYACLcB/s1600/Bodh-Gaya-2013-1791.jpg',alt:'A community health worker checking a villager at a rural health camp',credit:'Rural Health Care Programme photo',href:'https://anuvrat-arya.blogspot.com/2011/08/bachelor-of-rural-health-care-programme.html'},
+ tailoring:{src:'https://im.whatshot.in/img/2022/Aug/istock-484228451-cropped-1-1659340329.jpg',alt:'A woman sewing fabric at a tailoring workstation',credit:'WhatsHot Mumbai',href:'https://www.whatshot.in/mumbai/this-mumbai-initiative-teaches-women-to-stitch-and-empowers-them-to-be-self-reliant--c-37003'},
+ rehabilitation:{src:'https://realign.clinic/images/services/neurological.jpg',alt:'A physiotherapist helping an older man practise walking with support',credit:'Realign Rehab Clinic',href:'https://realign.clinic/'},
+ schoolFriends:{src:'https://www.prabhatkhabar.com/_next/image?q=75&url=https%3A%2F%2Fwpmedia.prabhatkhabar.com%2Fuploads%2F2025%2F12%2FRajasthan-Board-Exam-2026.jpg&w=1080',alt:'School friends standing together in a school courtyard',credit:'Prabhat Khabar',href:'https://www.prabhatkhabar.com/education/exam-information/rajasthan-board-exam-2026-date-sheet-released-rbse-10th-12th-exam-time-table'},
+ cleanup:{src:'https://images.bhaskarassets.com/web2images/521/2025/09/25/f8d99956-b263-43ed-b8da-e3ae45ff9c87_1758802092619.jpg',alt:'Residents working together in a village cleanliness campaign',credit:'Dainik Bhaskar',href:'https://www.bhaskar.com/local/uttar-pradesh/fatehpur/bakandha/news/simultaneous-shramdaan-in-816-gram-panchayats-more-than-17-thousand-people-participated-136012230.html'},
+ floodField:{src:'https://www.tribuneindia.com/sortd-service/imaginary/v22-01/jpg/large/high?url=dGhldHJpYnVuZS1zb3J0ZC1wcm8tcHJvZC1zb3J0ZC9tZWRpYTM3MDM0ZWQwLWUyOWEtMTFmMC05ZjdmLWQ5NWI0NWYwMWMxNi5qcGc%3D',alt:'A farmer standing in a waterlogged field with flood-damaged crops',credit:'The Tribune',href:'https://www.tribuneindia.com/news/jalandhar/year-ender-floods-and-struggle-for-survival/'},
+ harvestFarm:{src:'https://www.krishitrace.com/smiling-indian-farmer-in-field.jpg',alt:'A farmer standing with a harvested crop in a green field',credit:'KrishiTrace',href:'https://www.krishitrace.com/'},
+ seniorDocs:{src:'https://www.prayojana.in/cdn/shop/files/prayojana_adding_life_to_years_home_page_banner_section_writing_600x.webp?v=1765449269%29',alt:'An older woman carefully reviewing documents at a table',credit:'Prayojana Senior Care',href:'https://www.prayojana.in/'},
+ publicOfficeDocs:{src:'https://img.etimg.com/thumb/width-1200%2Cheight-900%2Cimgsize-73704%2Cresizemode-75%2Cmsid-54806295/wealth/plan/social-security-schemes-are-more-popular-in-urban-than-rural-areas.jpg',alt:'People handling paperwork at a government service counter',credit:'The Economic Times',href:'https://m.economictimes.com/wealth/plan/social-security-schemes-are-more-popular-in-urban-than-rural-areas/articleshow/54806295.cms'},
+};
+
+/* Household images are mapped by profile ID, not broad name keywords. No match means no photo. */
+const HOUSEHOLD_PHOTOS={
+ farm:'harvestFarm',lease:'farmDrought',coast:null,remote:'ruralFamily',repair:'kirana',textile:'tailoring',migrant:'migrantTrain',public:'interview',trader:'kirana',service:'cityMarket',gig:'cityMarket',artisan:'tailoring',dairy:'harvestFarm',orchard:'harvestFarm',forest:'ruralFamily',canal:'harvestFarm',brick:'construction',transport:'bus',clinic:'ruralClinic',schoolstaff:'classroom',construction:'construction',tailoring:'tailoring',smallholding:'harvestFarm',retired:'seniorDocs',remittance:'migrantTrain',marketstall:'streetFood',warehouse:'factory',tourism:'cityMarket',fisherinland:null,selfhelp:'womenGroup',smallfactory:'factory',landdispute:'farmDrought',floodplain:'floodField',hillroad:'ruralFamily',salariedprivate:'interview',shopfloor:'factory',cooperative:'harvestFarm',carework:'rehabilitation',repairmobile:'digitalPay',examaspirant:'exam',careburden:'rehabilitation',pensioner:'seniorDocs'
+};
+
+/* Every event ID has an explicit photo decision. Similar events can share a relevant image;
+   abstract or sensitive events intentionally have no photo rather than a misleading one. */
+const EVENT_PHOTOS={
+ echoStudy:'interview',echoNetwork:'womenGroup',echoReserve:'seniorDocs',echoCare:'ruralFamily',famshock:'farmDrought',childill:'ruralClinic',vax:'vaccination',mentor:'teacherSupport',earlymarry:'wedding',parent:'newborn',migrate:'migrantTrain',layoff:'factory',illness:'doctorPatient',chronic:'pharmacy',parentcare:'rehabilitation',inherit:'harvestFarm',ageism:null,kidsmove:'migrantTrain',fall:'rehabilitation',grand:'ruralFamily',dementia:null,parentdeathc:null,parentdeatha:null,expelled:'classroom',scholarship:'exam',apprentice:'factory',addiction:null,jobgain:'interview',business:'streetFood',divorce:null,disaster:'floodField',wagetheft:'construction',sibling:'ruralFamily',training:'tailoring',kidsedu:'classroom',eviction:null,volunteer:'cleanup',camp:'ruralClinic',pensionaware:'seniorDocs',friend:'womenGroup',scam:null,network:'womenGroup',schoolmeal:'schoolMeal',languagebarrier:'classroom',carework:'rehabilitation',examfee:'exam',peerpressure:'schoolFriends',firstphone:'digitalPay',firstjob:'interview',dowrypressure:'wedding',housingmove:null,careersponsor:'interview',union:'factory',loantrap:null,careleave:'rehabilitation',smallbusiness:'kirana',digitalfraud:'digitalPay',heatwave:'heatwave',floodrelief:'floodField',promotionbias:'interview',familyland:'farmDrought',pensionpaperwork:'publicOfficeDocs',retirementchoice:null,communityclinic:'ruralClinic',widowrights:'seniorDocs',grandparentrole:'ruralFamily',loneliness:null,medicinecost:'pharmacy',legalidentity:'publicOfficeDocs',remittance:null,careworker:'rehabilitation',localtransport:'bus',cropprice:'harvestFarm'
+};
+const EVENT_CAPTIONS={
+ echoStudy:'Earlier study choices now meet a real opening at work.',echoNetwork:'Relationships can return as information, introductions or practical help.',echoReserve:'Savings can create choices when an expense arrives, but every investment carries risk.',echoCare:'The ties built over years can become a source of practical support in later life.',famshock:'A weak harvest or a slowdown can leave a household with little room to absorb a shock.',childill:'Local access to treatment can change how severe a childhood illness becomes.',vax:'A public-health team brings prevention closer to the community.',mentor:'One-to-one attention can make a difference inside the classroom.',earlymarry:'Family expectations around marriage can alter the path through school and work.',parent:'A new child brings connection, responsibility and costs.',migrate:'Moving can open up work while making everyday support harder to reach.',layoff:'When work disappears, income can fall before another job is found.',illness:'Treatment may protect health while placing pressure on household finances.',chronic:'Long-term conditions can mean repeated visits and continuing medicine costs.',parentcare:'Care responsibilities can draw on the time, income and health of other family members.',inherit:'Land and other assets can carry advantages across generations.',kidsmove:'A move for work can leave relatives farther apart, even when money is sent home.',fall:'Recovery after a fall may depend on treatment, mobility support and help at home.',grand:'Grandparents can be an important part of the family care network.',expelled:'A break in schooling can narrow later opportunities.',scholarship:'An exam result can become a route into further education.',apprentice:'Practical training connects learning to work on the shop floor.',jobgain:'A job offer can change income and security, depending on its terms.',business:'A small stall depends on customers, daily sales and the cost of supplies.',disaster:'Floods can damage livelihoods as well as homes and infrastructure.',wagetheft:'Workers may depend on wages that are difficult to recover when payment is delayed.',sibling:'Family support can mean sharing both money and responsibility.',training:'Learning a trade can open another route to earning.',kidsedu:'The school environment shapes a child’s chance to learn and continue.',volunteer:'Local action depends on people having time to work together.',camp:'Outreach brings basic checks closer to people who may live far from a clinic.',friend:'A regular group can create opportunities for mutual support.',network:'Relationships can spread information, introductions and practical help.',pensionaware:'Information about a pension only helps if a person can use the benefit.',pensionpaperwork:'Missing documents can delay access to an earned benefit.',legalidentity:'A paperwork mismatch can block an otherwise available service.',widowrights:'Documents and recognised claims can affect housing security.',digitalfraud:'A digital-payment problem can be difficult to reverse once money has moved.',schoolmeal:'A school meal supports the everyday conditions for learning.',languagebarrier:'What happens in the classroom also depends on whether instructions are understood.',carework:'Care is skilled work, and it can place real demands on time and the body.',examfee:'The cost of sitting an exam can become a barrier even when a student is prepared.',peerpressure:'Friends can influence the choices young people feel able to make.',firstphone:'A phone can connect someone to information and digital services.',firstjob:'A first job can offer a foothold, though terms and stability vary.',dowrypressure:'Wedding expectations can create financial pressure on a household.',careersponsor:'A professional introduction can make an opportunity easier to reach.',union:'Workers organising together can change how their concerns are heard.',careleave:'When someone needs daily care, another person’s work and rest can be affected.',smallbusiness:'A local shop depends on stock, footfall and thin margins.',heatwave:'Outdoor work becomes more physically risky during extreme heat.',floodrelief:'After flooding, recovery may require help for people, homes and livelihoods.',promotionbias:'Hiring and promotion decisions can reflect more than performance alone.',familyland:'Land is a livelihood, but access to it can also be contested.',communityclinic:'Regular outreach can make preventive care easier to access.',grandparentrole:'Intergenerational care can bring closeness as well as workload.',medicinecost:'A price increase can force a choice between treatment and other essentials.',careworker:'Paid care can ease some pressure, if it is available and affordable.',localtransport:'A bus route can connect a neighbourhood to school, healthcare and jobs.',cropprice:'When crop prices move sharply, farm income becomes harder to predict.'
+};
+function householdPhoto(pr){const key=HOUSEHOLD_PHOTOS[pr&&pr.house];return key?PHOTO_ASSETS[key]||null:null;}
+function householdPhotoMarkup(pr){const p=householdPhoto(pr);if(!p)return '';return `<figure class="household-figure"><img class="life-photo" src="${esc(p.src)}" alt="${esc(p.alt)}" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="photoFailed(this)"><figcaption class="photo-credit">Photo: <a href="${esc(p.href)}" target="_blank" rel="noopener noreferrer">${esc(p.credit)}</a> · illustrative context</figcaption></figure>`;}
+function eventPhoto(ev,pr){let key=EVENT_PHOTOS[ev&&ev.id];if(ev&&ev.id==='famshock'){const rural=pr&&['farm','lease','coast','remote','dairy','orchard','forest','canal','brick','smallholding','landdispute','floodplain','hillroad'].includes(pr.house);key=rural?'farmDrought':(pr&&['marketstall','trader','repair','smallbusiness'].includes(pr.house)?'kirana':'cityMarket');}if(ev&&ev.id==='disaster'){key=pr&&['floodplain','coast','fisherinland'].includes(pr.house)?'floodField':'farmDrought';}if(ev&&ev.id==='cropprice'){key=pr&&['farm','lease','dairy','orchard','canal','smallholding','cooperative','landdispute'].includes(pr.house)?'harvestFarm':'kirana';}const a=key?PHOTO_ASSETS[key]:null;if(!a)return null;return {...a,caption:EVENT_CAPTIONS[ev.id]||''};}
+function eventPhotoMarkup(ev,pr){const p=eventPhoto(ev,pr);if(!p)return '';return `<figure class="event-figure"><div class="event-scene"><img src="${esc(p.src)}" alt="${esc(p.alt)}" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="photoFailed(this)"><span class="scene-caption">${esc(p.caption)}</span></div><figcaption class="photo-source">Photo: <a href="${esc(p.href)}" target="_blank" rel="noopener noreferrer">${esc(p.credit)}</a> · illustrative, not a depiction of this simulated household</figcaption></figure>`;}
+
+function birth(){
+ const p=S.players[S.pi],pr=p.life.pr;
+ const o=p.odds;
+ return topb()+journeyMarkup(0,'Starting point')+`<div class="card fade"><span class="eyebrow">${esc(p.name)} · birth lottery</span><h2>${COHORTS[pr.cohort].label}, ${COHORTS[pr.cohort].tag}</h2>
+ <div class="card birth-household" style="background:var(--wash)">${householdPhotoMarkup(pr)}<b>${esc((HOUSEHOLDS[pr.house]||HOUSEHOLDS.farm).name)}</b><p class="small muted">${esc((HOUSEHOLDS[pr.house]||HOUSEHOLDS.farm).setting)}</p><p class="small muted">This starting context changes your initial resources and the payoff from some actions. Other households at the table will draw different contexts.</p></div>
+ <div class="chips">${profChips(pr)}</div>
+ ${statBars(p.life.st)}
+ <div class="card" style="background:var(--wash)"><h3>Your dream: ${ASPIRATIONS[p.asp].name}</h3><p class="small muted">${ASPIRATIONS[p.asp].text}</p>
+ <p class="small">Chance of reaching it, if your whole life is played with focused effort:</p>
+ <div class="odds"><div class="o you"><span>You</span><div class="track"><div class="fill" style="width:${o.you.p*100}%"></div></div><span class="mono">${Math.round(o.you.p*100)}%</span></div>
+ <div class="o"><span>Richest, urban, South</span><div class="track"><div class="fill" style="width:${o.top.p*100}%"></div></div><span class="mono">${Math.round(o.top.p*100)}%</span></div>
+ <div class="o"><span>Poorest, rural, North</span><div class="track"><div class="fill" style="width:${o.bot.p*100}%"></div></div><span class="mono">${Math.round(o.bot.p*100)}%</span></div></div>
+ <p class="small muted">Estimate from 600 simulated lives per profile using the game’s focused-effort strategy. ${o.you.hit===0?'No simulated run reached the goal; 0% here does not mean success is impossible.':`${o.you.hit} of ${o.you.n} simulated lives reached the goal.`} The comparison profiles change starting circumstances, not your actual future decisions. These are model outputs, not real-world predictions.</p><details class="small muted"><summary>Why might my chance be low?</summary><p>The goal requires several conditions at once. For this dream, the model checks whether you reach old age, have health of at least 50, and have income covering modeled needs. A single failed condition means the run does not count as success.</p></details></div>
+ <button class="primary" data-a="birthnext">${S.pi<S.players.length-1?'Pass to next player':'Start the first round'}</button></div>`;
+}
+function council(){
+ const ph=S.round,used=Object.keys(S.polSched).length,left=3-used;
+ const cards=Object.entries(POLICIES).map(([k,p])=>{
+  const on=S.polSched[k]!=null,expired=k==='child'&&ph>1&&!on;
+  return `<div class="card pol ${on?'on':''}"><b>${p.name}</b><span class="small muted">${p.short}</span><span class="tag">${p.target}</span>${on?`<span class="chip good">In force since ${PH[S.polSched[k]].name}</span>`:expired?`<span class="chip bad">Effective window passed</span>`:`<button data-a="enact" data-k="${k}" ${left<=0?'disabled':''}>Enact now · 1 point</button>`}</div>`;}).join('');
+ return topb()+journeyMarkup(ph,'Policy council')+`<div class="card fade"><span class="eyebrow">Round ${ph+1} of 6 · ${PH[ph].name} · ages ${PH[ph].ages[0]}–${PH[ph].ages[1]}</span><h2>Policy council</h2>
+ <p class="muted small">Policy points left: <b>${left}</b>. Policies affect everyone from the round they begin. Early-Life Investment can only start during childhood or youth; later policies cannot undo earlier losses.</p>
+ <div class="grid">${cards}</div><button class="primary" data-a="council-done">Continue to the era card</button></div>`;
+}
+function eraCard(life,ph){
+ const c=PERIOD[life.pr.cohort][ph];
+ return `<div class="era"><span class="eyebrow">Era · ${c.yr}</span><h3>${esc(c.title)}</h3><p class="muted small">${esc(c.txt)}</p></div>`;
+}
+function turnPlan(){
+ const p=S.players[S.pi],life=p.life,ph=life.phase,st=life.st;
+ const pol=polAt(life.polSched,ph),per=perFor(life,ph);
+ const ids=ph===0?['study','work','health']:Object.keys(ACTIONS);
+ const ap=PH[ph].ap,ch=S.chosen;
+ // projected state
+ const proj={...st};
+ ch.forEach(id=>{const r=calc(id,proj,life.pr,pol,per,ph,.5);const d={...r.d};if(id==='work'&&r.ex.pFormal!=null){d.W=r.ex.incInformal*(1+.6*r.ex.pFormal);d.P=.2*r.ex.pFormal;}applyDelta(proj,d);});
+ const cards=ids.map(id=>{
+  const r=calc(id,proj,life.pr,pol,per,ph,.5);const d={...r.d};
+  if(id==='work'&&r.ex.pFormal!=null){d.W=r.ex.incInformal*(1+.6*r.ex.pFormal);}
+  const eff=['W','H','E','T'].filter(k=>Math.abs(d[k])>=.05).map(k=>`<span class="delta ${d[k]<0?'neg':''} ${k}">${STATC[k]} ${sg(d[k])}</span>`).join('');
+  const mods=r.mods.map(m=>{const pct=Math.round((m.m-1)*100);const desc=pct===0?'no change':pct>0?`${pct}% higher effect`:`${Math.abs(pct)}% lower effect`;return `<span class="mod ${m.m>1?'up':''}" title="${esc(m.label)}: ${desc} relative to the base action effect.">${esc(m.label)} ${pct>0?'+':''}${pct}%</span>`;}).join('');
+  const extra=id==='work'&&r.ex.pFormal!=null&&ph<=3?`<span class="tag">Formal job chance ${Math.round(r.ex.pFormal*100)}% · adds pension rights</span>`:'';
+  const full=ch.length>=ap;
+  return `<button class="acard" data-a="add" data-k="${id}" ${full?'disabled':''}><span class="t">${actionName(id,ph)}</span><span class="small muted">${actionBlurb(id,ph)}</span><span class="eff">${eff}</span><span class="mods">${mods}</span>${extra}<span class="small muted">${id==='study'?'Base skill gain depends on life stage and falls as skills rise; education barriers multiply that gain.':id==='work'?(ph===0?'A household survival response when money is tight; reduces schooling and health.':'Income depends on skills, job access and household context; formal work is uncertain and can add pension rights.'):id==='invest'?'Savings grow only when wealth is positive; no guaranteed return is shown here.':id==='health'?'Health gains depend on current health, care access and household care context; spending may apply.':'Ties grow more slowly as your network becomes stronger; later ties can provide support.'}</span></button>`;
+ }).join('');
+ const slots=[];for(let i=0;i<ap;i++)slots.push(ch[i]?`<button class="slot f" data-a="rm" data-i="${i}">${actionName(ch[i],ph)} ✕</button>`:`<span class="slot">open</span>`);
+ return topb()+journeyMarkup(ph)+`<div class="card fade"><div class="row"><div class="grow"><span class="eyebrow">Round ${ph+1} · ${PH[ph].name} · ${yrs(life.pr.cohort,ph)}</span><h2>${esc(p.name)}</h2></div><div class="chips">${profChips(life.pr)}</div></div>
+ ${eraCard(life,ph)}
+ ${statBars(st)}
+ <div class="chips"><span class="chip">Pension rights ${Math.round(st.P*100)}%</span><span class="chip">${st.place==='U'?'Urban':'Rural'} now</span>${st.scars?`<span class="chip bad">Scars ${st.scars}</span>`:''}${st.chronic?`<span class="chip bad">Chronic ${st.chronic}</span>`:''}${st.W<0?'<span class="chip bad">In debt</span>':''}</div></div>
+ ${cumulativePanel(life)}
+ <div class="card"><h3>Spend ${ap} action points</h3><p class="small muted">Values are abstract points, not rupees. Each card shows the estimated change from that action now. The coloured labels name the household mechanism affecting this action (for example, shift schedules, rent pressure or customer referrals). These are modelled percentage changes, not just profile descriptions. Effects can be reduced by low access or diminishing returns; life events add uncertainty afterwards. Hover or tap a modifier for its meaning.</p>
+ <div class="slots">${slots.join('')}</div>
+ <div class="grid">${cards}</div>
+ <button class="primary" data-a="lock" ${ch.length<ap?'disabled':''}>${ch.length<ap?`Choose ${ap-ch.length} more`:'Lock in and draw events'}</button></div>`;
+}
+function turnEvent(){
+ const p=S.players[S.pi],life=p.life;const ev=currentEvent(life);
+ const done=life.cur.events;
+ let body='';
+ if(S.evRes){
+  const r=S.evRes;
+  body=`<div class="evt fade"><span class="lvl">Outcome · ${r.level} level</span><h3>${esc(r.name)}</h3>${r.choice?`<p class="small"><b>Your move:</b> ${esc(r.choice)}</p>`:''}${outcomeImpacts(r.log)}<details><summary class="small muted">Why this matters</summary><p class="small muted">${esc(r.concept)}</p><p class="small muted">${esc(r.text)}</p><div class="chips" style="margin-top:8px">${deltaChips(r.log)}</div></details></div><button class="primary" data-a="evnext">${currentEvent(life)?'Next event':'See the phase report'}</button>`;
+ }else if(ev){
+  const c=ctxFor(life,life.phase,[]);
+  const scene=eventPhotoMarkup(ev,life.pr);
+  if(ev.choices){
+   const av=availChoices(life,ev);
+   body=`<div class="evt fade">${scene}<div class="event-intro"><span>${ev.story?'A choice from your past':'The situation'}</span><span class="chip">${ev.level} · ${ev.choices.length} moves</span></div><h3>${esc(ev.name)}</h3><p class="muted">${esc(ev.text(c))}</p><div class="event-intro"><span>Choose your move</span><span class="small muted">No perfect answer</span></div><div class="grid">${av.map((a,i)=>`<button class="event-choice" data-step="${i+1}" data-a="evchoice" data-i="${i}" ${a.ok?'':'disabled'}><span class="choice"><b>${esc(a.label)}</b><small>${a.ok?esc(a.desc):esc(a.reason)}</small></span></button>`).join('')}</div><details><summary class="small muted">Sociology link</summary><p class="small muted">${esc(ev.concept)}</p></details></div>`;
+  }else body=`<div class="evt fade">${scene}<div class="event-intro"><span>${ev.story?'A choice from your past':'The situation'}</span><span class="chip">${ev.level}</span></div><h3>${esc(ev.name)}</h3><p class="muted">${esc(ev.text(c))}</p><details><summary class="small muted">Sociology link</summary><p class="small muted">${esc(ev.concept)}</p></details><button class="primary" data-a="evchoice" data-i="0">See what happens</button></div>`;
+ }
+ return topb()+journeyMarkup(life.phase)+`<div class="card fade"><span class="eyebrow">${esc(p.name)} · ${PH[life.phase].name} · events</span>${statBars(life.st)}</div>${body}`;
+}
+function turnReport(){
+ const p=S.players[S.pi],life=p.life,rep=S.rep;
+ const sections=rep.lines.filter(l=>l.log.length).map(l=>`<div><b class="small">${esc(l.title)}</b><div class="chips" style="margin-top:4px">${deltaChips(l.log)}</div></div>`).join('');
+ const evs=rep.events.map(e=>`<div><b class="small">${esc(e.name)}</b>${e.choice?` <span class="small muted">(${esc(e.choice)})</span>`:''}<div class="chips" style="margin-top:4px">${deltaChips(e.log)}</div></div>`).join('');
+ const next=nextTurnLabel();
+ return topb()+journeyMarkup(rep.ph,rep.alive?'Stage complete':'Life ended here')+`<div class="card fade"><span class="eyebrow">${esc(p.name)} · end of ${PH[rep.ph].name}</span><h2>${rep.alive?'Phase report':'Life ends at '+rep.deathAge}</h2>
+ ${statBars(rep.end,rep.start)}
+ ${rep.widow?`<p class="small"><b>Linked lives.</b> Your spouse died. ${rep.widow.F?'Women are far more often widowed, and lose more income when they are.':''}</p>`:''}
+ ${rep.income?`<p class="small muted">Old-age income from your own sources: ${f1(rep.income.own)} against costs of ${rep.income.need}. ${rep.income.own>=rep.income.need*2.5?'<b>Financially independent.</b>':'Family and debt cover the rest.'}</p>`:''}
+ <div style="display:flex;flex-direction:column;gap:10px">${sections}${evs}</div>
+ <button class="primary" data-a="after">${next}</button></div>`;
+}
+function nextTurnLabel(){
+ const act=S.players.filter((q,i)=>i>S.pi&&!q.life.done&&q.life.phase===S.round);
+ if(act.length)return 'Pass to '+act[0].name;
+ const any=S.players.some(q=>!q.life.done);
+ return any?'Round summary':'See the results';
+}
+function roundSummary(){
+ const CLS=['Poorest fifth','Second fifth','Middle class','Upper-middle','Richest fifth'];
+ const rows=S.players.map(p=>{const s=p.life.st,pr=p.life.pr;const prof=`${HOUSEHOLDS[pr.house]?.name||'Household'} · ${CLS[pr.q-1]} · ${pr.g==='F'?'woman':'man'}${pr.caste?' · marginalised caste':''}`;return `<tr><td>${esc(p.name)}</td><td>${esc(prof)}</td><td>${p.life.done?(p.life.st.alive?'—':'estimated death age '+p.life.st.deathAge):'alive'}</td><td>${f1(s.W)}</td><td>${f1(s.H)}</td><td>${f1(s.E)}</td><td>${f1(s.T)}</td></tr>`}).join('');
+ const living=S.players.filter(p=>p.life.st.alive),hs=living.map(p=>p.life.st.H),ws=living.map(p=>p.life.st.W);
+ const statNames={W:'Wealth',H:'Health',E:'Skills',T:'Ties'};
+ const deltaFor=(p,k)=>{const r=p.life.reports[S.round];return r&&r.start&&r.end?(r.end[k]||0)-(r.start[k]||0):0;};
+ const spark=(p)=>{const vals=['W','H','E','T'].map(k=>({k,label:statNames[k],d:deltaFor(p,k)}));const scale=Math.max(1,...vals.map(x=>Math.abs(x.d)));return `<div class="round-graph" aria-label="Change during this round">${vals.map(x=>`<div class="round-g-row"><span>${x.label}</span><div class="round-g-track"><div class="round-g-zero"></div><div class="round-g-bar ${x.d<0?'neg':'pos'}" style="width:${Math.min(48,Math.abs(x.d)/scale*48)}%;${x.d<0?'right:50%':'left:50%'}"></div></div><b>${x.d>0?'+':''}${f1(x.d)}</b></div>`).join('')}</div>`;};
+ const details=S.players.map(p=>{const pr=p.life.pr;const ds=['W','H','E','T'].map(k=>({k,label:statNames[k],d:deltaFor(p,k)}));const pos=ds.filter(x=>x.d>0).sort((a,b)=>b.d-a.d)[0];const neg=ds.filter(x=>x.d<0).sort((a,b)=>a.d-b.d)[0];const takeaway=pos&&neg?`${pos.label} rose most (+${f1(pos.d)}); ${neg.label.toLowerCase()} fell most (${f1(neg.d)}).`:pos?`${pos.label} rose most (+${f1(pos.d)}).`:neg?`${neg.label} fell most (${f1(neg.d)}).`:'Your four tracked stats barely changed this phase.';return `<details class="round-player"><summary><b>${esc(p.name)}</b> — ${esc(HOUSEHOLDS[pr.house]?.name||'Household')} <span class="muted">· wealth ${deltaFor(p,'W')>=0?'+':''}${f1(deltaFor(p,'W'))}</span></summary><div class="round-player-body"><p class="small muted">Change this phase</p>${spark(p)}<p class="small"><b>At a glance:</b> ${takeaway}</p></div></details>`;}).join('');
+ return topb()+journeyMarkup(S.round,'Round complete')+`<div class="card fade"><span class="eyebrow">After ${PH[S.round].name}</span><h2>The table so far</h2><p class="muted">See each player’s current position below. Expand a player for one simple graph of what went up or down this phase.</p>
+ <div class="scroll"><table><tr><th>Player</th><th>Starting position</th><th>Status</th><th>Wealth</th><th>Health</th><th>Skills</th><th>Ties</th></tr>${rows}</table></div>
+ <h3>Changes this round</h3><p class="small muted">Green bars show increases; red bars show decreases. Numbers are abstract game points, not rupees.</p>${details}
+ ${hs.length>1?`<p class="small muted">Among living players, wealth ranges from ${f1(Math.min(...ws))} to ${f1(Math.max(...ws))}; health ranges from ${f1(Math.min(...hs))} to ${f1(Math.max(...hs))}. These are current gaps. The individual reports above show how much each player changed this round.</p>`:''}
+ <button class="primary" data-a="nextround">Next round</button></div>`;
+}
+const CF=[['Richest, urban, South, no caste barrier',{q:5,place:'U',reg:'S',caste:0}],['Middle fifth, urban, South',{q:3,place:'U',reg:'S',caste:0}],['Poorest, rural, North, marginalised caste',{q:1,place:'R',reg:'N',caste:1}]];
+function albumSymbol(stat){return ({W:'↗',H:'+',E:'✦',T:'◎'})[stat]||'•';}
+function lifeAlbumMarkup(p,s,hit){
+ const life=p.life;
+ const records=[];
+ (life.reports||[]).forEach((rep,ph)=>(rep.events||[]).forEach(e=>{
+  const score=(e.log||[]).reduce((n,x)=>n+(x.stat?Math.abs(Number(x.delta)||0):0),0);
+  records.push({e,ph,score,photo:eventPhoto(e,life.pr)});
+ }));
+ records.sort((a,b)=>b.score-a.score);
+ const chosen=[],used=new Set();
+ for(const r of records){if(chosen.length>=3)break;if(r.photo&&!used.has(r.photo.src)){chosen.push(r);used.add(r.photo.src);}}
+ const actionCount={};(life.actions||[]).flat().forEach(id=>{if(id)actionCount[id]=(actionCount[id]||0)+1;});
+ const leading=Object.entries(actionCount).sort((a,b)=>b[1]-a[1])[0];
+ const actionMessages={study:'You repeatedly made room for learning, even when other needs competed for time.',work:'You often prioritised earning now, trading some time and energy for immediate resources.',invest:'You returned to saving and investing, trying to build a buffer for later life.',health:'You repeatedly protected health and recovery, even when doing so had a cost.',nurture:'You spent actions maintaining relationships, creating the possibility of help in both directions.'};
+ const first=records[0];
+ const overall=hit?`You reached “${ASPIRATIONS[p.asp].name}”. Your route was shaped by both your decisions and the circumstances you started with.`:`You did not reach “${ASPIRATIONS[p.asp].name}” in this run. That is one outcome under this model, not a verdict on the choices you made.`;
+ const story=leading?(actionMessages[leading[0]]||overall):overall;
+ const highlightMarkup=chosen.map((r,i)=>{
+  const {e,ph,score,photo}=r;
+  const agg={W:0,H:0,E:0,T:0};(e.log||[]).forEach(x=>{if(x.stat&&agg[x.stat]!=null)agg[x.stat]+=Number(x.delta)||0;});
+  const top=Object.entries(agg).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]))[0];
+  const effect=top&&Math.abs(top[1])>.05?`${({W:'Wealth',H:'Health',E:'Skills',T:'Ties'})[top[0]]} ${sg(top[1])}`:'A turning point in your story';
+  return `<article class="album-card"><figure class="album-visual"><img src="${esc(photo.src)}" alt="${esc(photo.alt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="photoFailed(this)"><figcaption>${esc(photo.caption||e.name)}</figcaption></figure><div class="album-body"><span class="album-stage">${esc(PH[ph].name)} · moment ${i+1}</span><h4>${esc(e.name)}</h4><p>${esc(e.choice?'You chose: '+e.choice+'.':(e.text||'This event changed the path of the simulation.'))}</p><span class="chip">${esc(effect)}</span><p class="photo-credit">Photo: <a href="${esc(photo.href)}" target="_blank" rel="noopener noreferrer">${esc(photo.credit)}</a> · illustrative</p></div></article>`;
+ }).join('');
+ const motifs=[['Your pattern',leading?`${(ACTIONS[leading[0]]||{name:leading[0]}).name} was your most repeated action.`:'Your action pattern varied across stages.',leading?albumSymbol(({study:'E',work:'W',invest:'W',health:'H',nurture:'T'})[leading[0]]):'•'],['The outcome',overall,hit?'✓':'↗'],['Your starting point',`${HOUSEHOLDS[life.pr.house]?.name||'Your household'} shaped the resources and opportunities available at the beginning.`, '01']];
+ const needed=Math.max(0,3-chosen.length);
+ const extra=motifs.slice(0,needed).map((m,i)=>`<article class="album-card"><div class="album-art"><b>${m[2]}</b></div><div class="album-body"><span class="album-stage">Life Album · ${chosen.length+i+1}</span><h4>${esc(m[0])}</h4><p>${esc(m[1])}</p></div></article>`).join('');
+ return `<section class="life-album"><div class="album-header"><div><span class="eyebrow">Your Life Album</span><h3>A life, in a few moments</h3></div><span class="chip">${records.length} recorded events</span></div><p class="album-story">${esc(story)} Your results reflect the model’s rules and chance, not a real-world prediction.</p><div class="album-grid">${highlightMarkup}${extra}</div><div class="album-takeaway"><b>One thing to remember:</b> ${esc(first?`“${first.e.name}” had the largest measured swing among your recorded events. A big in-game effect does not mean the same effect size would occur in real life.`:'Your path was shaped by action choices, starting circumstances and random events together.')}</div></section>`;
+}
+function final(){
+ const sums=S.players.map(p=>({p,s:summarize(p.life)}));
+ S.sums=sums;
+ const hly=sums.map(x=>x.s.hly),mh=mean(hly);
+ const cards=sums.map(({p,s})=>{
+  const asp=ASPIRATIONS[p.asp];const hit=asp.test(p.life);
+  const hs=s.hist.map(x=>x.H),ws=s.hist.map(x=>Math.min(x.W,150));
+  const labels=['0','15','25','40','60','75'];
+  const cfs=CF.map(([name,o])=>{const pr2=Object.assign({},p.life.pr,o);const l2=counterfactual(p.life,pr2);const s2=summarize(l2);return {name,s:s2};});
+  const cfrows=cfs.map(c=>`<tr><td>${c.name}</td><td>${c.s.age}</td><td>${c.s.hly}</td><td>${c.s.grade.label}</td><td>${f1(c.s.final.W)}</td></tr>`).join('');
+  return `<div class="card"><div class="row"><div class="grow"><span class="eyebrow">${esc(p.name)}</span><h2>${hit?'Dream reached':'Dream missed'}: ${asp.name}</h2></div><div class="chips">${profChips(p.life.pr)}</div></div>
+  ${lifeAlbumMarkup(p,s,hit)}
+  <div class="grid"><div class="kpi"><span class="small muted">Estimated age at death</span><b>${s.age}</b></div><div class="kpi"><span class="small muted">Healthy years</span><b>${s.hly}</b></div><div class="kpi"><span class="small muted">Last functional level</span><b style="font-size:1.1rem">${s.grade.label}</b></div><div class="kpi"><span class="small muted">Trajectory</span><b style="font-size:1.1rem">${s.traj}</b></div></div>
+  <div class="legend"><span><i class="sw" style="background:var(--h)"></i>Health</span><span><i class="sw" style="background:var(--w)"></i>Wealth (capped at 150)</span></div>
+  ${lineChart([{name:'Health',v:hs,c:'var(--h)'},{name:'Wealth',v:ws,c:'var(--w)'}],{ymax:150,labels:labels.slice(0,hs.length)})}
+  <p class="small muted">Your odds of this dream at birth: ${Math.round(p.odds.you*100)}%. ${hit?'You reached the target.':'The target was not reached in this run.'}</p>
+  <h3>Your exact choices, someone else’s start</h3>
+  <p class="small muted">The same planned actions and event seed, with unavailable choices substituted when necessary. Differences illustrate how starting conditions can change outcomes; they are not causal estimates.</p>
+  <div class="scroll"><table><tr><th>Starting profile</th><th>Estimated age at death</th><th>Healthy yrs</th><th>Last level</th><th>Wealth</th></tr>
+  <tr><td><b>You (actual)</b></td><td>${s.age}</td><td>${s.hly}</td><td>${s.grade.label}</td><td>${f1(s.final.W)}</td></tr>${cfrows}</table></div></div>`;
+ }).join('');
+ const ev=sums.map(x=>({name:x.p.name,v:x.s.hly}));
+ return topb()+`<div class="card fade"><span class="eyebrow">Debrief</span><h2>Beware the mean</h2>
+ <p class="muted">Healthy years lived, by player. The average is ${f1(mh)}. Nobody’s life looks like it.</p>
+ ${stripChart(ev,mh,{max:Math.max(60,Math.ceil(Math.max(...hly)/10)*10)})}
+ <div class="grid"><div class="card" style="background:var(--wash)"><h3>Discuss: personal trouble or public issue?</h3><p class="small">Pick one hard moment from the table. Name the choice that was made. Then name the rule, price or missing service that shaped it.</p></div>
+ <div class="card" style="background:var(--wash)"><h3>Discuss: timing</h3><p class="small">Which policy would have helped most if enacted earlier? Which only helped those who were already old?</p></div>
+ <div class="card" style="background:var(--wash)"><h3>Discuss: successful aging</h3><p class="small">Who looks like they aged “successfully”? What did they start with?</p></div></div></div>
+ ${cards}
+ <div class="row"><button class="primary" data-a="setup">Play again</button><button data-a="lab">Run the Population Lab</button></div>`;
+}
+
+/* ---------- Population Lab ---------- */
+const LAB={n:2500,cohort:'',pol:{},at:0,res:null,base:null,timing:null};
+function runLab(polSched,N,cohort){
+ const rows=[];
+ for(let i=0;i<N;i++){const rng=rngFor('lab'+i,0,'prof');const pr=randomProfile(rng,cohort||undefined);const l=botLife(pr,'L'+i,polSched,'balanced',.15);rows.push({pr,s:summarize(l),l});}
+ return rows;
+}
+function gini(a){const h=a.slice().sort((x,y)=>x-y),n=h.length,tot=h.reduce((x,y)=>x+y,0);let g=0;h.forEach((v,i)=>g+=(2*(i+1)-n-1)*v);return tot?g/(n*tot):0;}
+function labStats(rows){
+ const age=rows.map(r=>r.s.age),hly=rows.map(r=>r.s.hly);
+ const q=k=>rows.filter(r=>r.pr.q===k);
+ const o60=rows.filter(r=>r.s.age>=60);
+ const groups=[1,2,3,4,5].map(k=>{const a=q(k).map(r=>r.s.age);return {label:'Q'+k+' '+(k===1?'poorest':k===5?'richest':''),p10:pct(a,.1),p90:pct(a,.9),med:pct(a,.5),mean:mean(a),n:a.length,hly:mean(q(k).map(r=>r.s.hly))};});
+ const het=[1,2,3,4,5].map(i=>{const alive=rows.filter(r=>r.l.hist.length>i&&r.l.reports[i-1]?.alive);return {H:sd(alive.map(r=>r.l.hist[i].H)),W:sd(alive.map(r=>Math.min(300,r.l.hist[i].W)))};});
+ return {age:mean(age),hly:mean(hly),gap:groups[4].hly-groups[0].hly,gapAge:groups[4].mean-groups[0].mean,gini:gini(hly),indep:o60.filter(r=>r.s.indep).length/(o60.length||1),groups,het,
+  fem:mean(rows.filter(r=>r.pr.g==='F').map(r=>r.s.age)),mal:mean(rows.filter(r=>r.pr.g==='M').map(r=>r.s.age)),
+  traj:['Successful','Usual','Pathological','Died before later life'].map(t=>[t,rows.filter(r=>r.s.traj===t).length/rows.length])};
+}
+function polFrom(){const o={};for(const k in LAB.pol)if(LAB.pol[k]&&!(k==='child'&&LAB.at>1))o[k]=LAB.at;return o;}
+function lab(){
+ const r=LAB.res;let out='';
+ if(r){
+  const s=r.stats;
+  out=`<div class="card fade"><span class="eyebrow">Result · ${r.n.toLocaleString()} simulated lives, everyone playing the same balanced strategy</span>
+  <div class="grid"><div class="kpi"><span class="small muted">Mean simulated age at death</span><b>${f1(s.age)}</b></div><div class="kpi"><span class="small muted">Mean healthy years</span><b>${f1(s.hly)}</b></div><div class="kpi"><span class="small muted">Richest vs poorest starting fifth, healthy years</span><b>${sg(s.gap)}</b></div><div class="kpi"><span class="small muted">Independent in income at 60+</span><b>${Math.round(s.indep*100)}%</b></div></div>
+  <h3>Age at death by starting wealth fifth</h3>
+  <div class="legend"><span><i class="sw" style="background:var(--accent);opacity:.4"></i>10th to 90th percentile</span><span>| median</span><span><i class="sw" style="background:var(--ink);border-radius:50%"></i>mean</span></div>
+  ${rangeChart(s.groups,{max:100})}
+  <p class="small muted">Same strategy for everyone. Gap in mean simulated age at death between the richest and poorest starting fifth: ${f1(s.gapAge)} years. Women ${f1(s.fem)}, men ${f1(s.mal)}.</p>
+  <h3>The spread grows with age</h3>
+  <div class="grid"><div>${lineChart([{name:'SD',v:s.het.map(x=>x.H),c:'var(--h)'}],{ymax:Math.ceil(Math.max(...s.het.map(x=>x.H))/5)*5||10,labels:['15','25','40','60','75'],fmt:f1,w:400})}<p class="small muted">Spread (SD) of health among people who survived to each checkpoint</p></div>
+  <div>${lineChart([{name:'SD',v:s.het.map(x=>x.W),c:'var(--w)'}],{ymax:Math.ceil(Math.max(...s.het.map(x=>x.W))/10)*10||10,labels:['15','25','40','60','75'],fmt:f1,w:400})}<p class="small muted">Spread (SD) of wealth among people who survived to each checkpoint</p></div></div>
+  <details><summary class="small">Table view</summary><div class="scroll"><table><tr><th>Group</th><th>n</th><th>Mean simulated age</th><th>Median simulated age</th><th>P10</th><th>P90</th><th>Healthy yrs</th></tr>${s.groups.map(g=>`<tr><td>${g.label}</td><td>${g.n}</td><td>${f1(g.mean)}</td><td>${g.med}</td><td>${g.p10}</td><td>${g.p90}</td><td>${f1(g.hly)}</td></tr>`).join('')}</table></div></details></div>`;
+ }
+ let tim='';
+ if(LAB.timing){
+  const T=LAB.timing;
+  tim=`<div class="card fade"><span class="eyebrow">Timing experiment · same ${LAB.n.toLocaleString()} births each time</span><h2>Early help or late help?</h2>
+  <div class="scroll"><table><tr><th>Scenario</th><th>Mean age</th><th>Healthy yrs</th><th>Q5 minus Q1 healthy yrs</th><th>Gini, healthy yrs</th><th>Income-independent 60+</th></tr>
+  ${T.map(t=>`<tr><td>${t.name}</td><td>${f1(t.s.age)}</td><td>${f1(t.s.hly)}</td><td>${f1(t.s.gap)}</td><td>${t.s.gini.toFixed(3)}</td><td>${Math.round(t.s.indep*100)}%</td></tr>`).join('')}</table></div>
+  <p class="small muted">These scenarios compare this model's assumptions; they do not estimate real policy effects in India. A policy can change income security without necessarily changing healthy years. The late package starts at age 60; the early package starts at birth.</p></div>`;
+ }
+ return topb()+`<div class="card fade"><span class="eyebrow">Population Lab</span><h2>Run ${LAB.n.toLocaleString()} lives at once</h2>
+ <p class="muted small">Every simulated person uses the same balanced strategy, with a little noise. Outcomes vary with starting circumstances, cohort history and chance. Probabilities and effect sizes are illustrative, not calibrated estimates for India; use the lab to explore model mechanisms, not predict population outcomes.</p>
+ <div class="row"><label for="lc">Cohort</label><select id="lc"><option value="">Mixed</option>${Object.entries(COHORTS).map(([k,c])=>`<option value="${k}" ${LAB.cohort===k?'selected':''}>${c.label}</option>`).join('')}</select>
+ <label for="ln">Lives</label><select id="ln">${[1000,2500,5000].map(n=>`<option ${n===LAB.n?'selected':''}>${n}</option>`).join('')}</select>
+ <label for="la">Policies start at</label><select id="la">${PH.map((p,i)=>`<option value="${i}" ${LAB.at===i?'selected':''}>${p.name}</option>`).join('')}</select></div>
+ <div class="grid">${Object.entries(POLICIES).map(([k,p])=>{const expired=k==='child'&&LAB.at>1;return `<label class="card pol ${LAB.pol[k]&&!expired?'on':''}" style="cursor:pointer"><span class="row"><input type="checkbox" data-pol="${k}" ${LAB.pol[k]&&!expired?'checked':''} ${expired?'disabled':''}><b>${p.name}</b></span><span class="small muted">${p.short}</span>${expired?'<span class="tag">Only available from childhood through youth</span>':''}</label>`;}).join('')}</div>
+ <div class="row"><button class="primary" data-a="labrun">Run simulation</button><button data-a="labtiming">Compare early package vs late package</button></div></div>${out}${tim}`;
+}
+
+/* ---------- controller ---------- */
+function view(){
+ switch(S.view){
+  case 'home':return home();case 'setup':return setup();case 'aspire':return aspire();case 'birth':return birth();
+  case 'council':return council();case 'era':return eraScreen();case 'plan':return turnPlan();case 'event':return turnEvent();
+  case 'report':return turnReport();case 'summary':return roundSummary();case 'final':return final();case 'lab':return lab();
+ }
+}
+function eraScreen(){
+ const life=S.players.find(p=>!p.life.done&&p.life.phase===S.round).life;
+ return topb()+journeyMarkup(S.round,'Era preview')+`<div class="card fade"><span class="eyebrow">Round ${S.round+1} · ${PH[S.round].name} · ${yrs(life.pr.cohort,S.round)}</span><h2>History arrives for everyone</h2>${eraCard(life,S.round)}
+ <p class="small muted">The same era card applies to all players. What it does to you depends on where you stand.</p><button class="primary" data-a="eradone">Start turns</button></div>`;
+}
+const SAVE_KEY='boundedAgencyGameStateV5';
+function persistState(){
+ try {
+  const payload=JSON.stringify({S,LAB});
+  try{sessionStorage.setItem(SAVE_KEY,payload);}catch(_e){}
+  try{localStorage.setItem(SAVE_KEY,payload);}catch(_e){}
+ } catch(_e) { /* Storage may be unavailable in some file previews; keep play running. */ }
+}
+function restoreState(){
+ let raw=null;
+ try{raw=sessionStorage.getItem(SAVE_KEY);}catch(_e){}
+ if(!raw){try{raw=localStorage.getItem(SAVE_KEY);}catch(_e){}}
+ if(!raw)return;
+ try{
+  const saved=JSON.parse(raw);
+  if(saved && saved.S && typeof saved.S.view==='string'){
+   S=saved.S;
+   // Reconnect serialized event IDs to the canonical event definitions so their
+   // choice functions remain available after a browser or preview reload.
+   (S.players||[]).forEach(player=>{
+    const life=player.life;if(!life)return;
+    if(Array.isArray(life.pendingEvents)) life.pendingEvents=life.pendingEvents.map(e=>EVENTS.find(def=>def.id===e.id)).filter(Boolean);
+   });
+   if(saved.LAB && typeof saved.LAB==='object'){
+    Object.assign(LAB,saved.LAB);
+   }
+  }
+ }catch(_e){
+  // Ignore old/corrupt snapshots rather than block a fresh game.
+  S={view:'home'};
+ }
+}
+function render(){persistState();$.innerHTML=view();window.scrollTo(0,0);}
+function startTurn(i){S.pi=i;S.chosen=[];S.view='plan';}
+function firstActive(){return S.players.findIndex(p=>!p.life.done&&p.life.phase===S.round);}
+function act(a,el){
+ switch(a){
+  case 'home':S={view:'home'};break;
+  case 'theme':{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark';return;}
+  case 'setup':S={view:'setup',n:S.n,names:S.names};break;
+  case 'start':{
+   saveSetupInputs();
+   const n=S.n||3,names=(S.names||[]).map((nm,i)=>nm.trim()||'Player '+(i+1));
+   const co=document.getElementById('co').value,seed='g'+Date.now();
+   const cohort=co||'ABCD'[Math.floor(rngFor(seed,0,'co')()*4)];
+   const householdOrder=shuffledHouseholds(rngFor(seed,0,'households'));
+   const players=names.map((nm,i)=>({name:nm,household:S.allocMode==='manual'?(S.manualProfiles[i]?.house||HOUSEHOLD_IDS[i%HOUSEHOLD_IDS.length]):householdOrder[i%householdOrder.length],manualProfile:S.allocMode==='manual'?S.manualProfiles[i]:null}));
+   S={view:'aspire',seed,cohort,polSched:{},players,householdOrder,allocMode:S.allocMode||'random',pi:0,round:0,n,names};break;}
+  case 'asp':{const p=S.players[S.pi];p.asp=el.dataset.k;
+   const pr=randomProfile(rngFor(S.seed,S.pi,'prof'),S.cohort,p.household);
+   if(p.manualProfile){pr.q=+p.manualProfile.q;pr.g=p.manualProfile.g;pr.caste=+p.manualProfile.caste;}
+   p.life=newLife(pr,S.seed+'#'+S.pi,S.polSched);
+   const ps=ASPIRATIONS[p.asp];const you=odds(pr,p.asp,{},600,S.seed);
+   const tp=odds({...pr,q:5,place:'U',reg:'S',caste:0},p.asp,{},600,S.seed+'t');
+   const bot=odds({...pr,q:1,place:'R',reg:'N',caste:1},p.asp,{},600,S.seed+'b');
+   p.odds={you,top:tp,bot};S.view='birth';break;}
+  case 'birthnext':if(S.pi<S.players.length-1){S.pi++;S.view='aspire';}else{S.round=0;S.view='council';}break;
+  case 'enact':S.polSched[el.dataset.k]=S.round;break;
+  case 'council-done':S.view='era';break;
+  case 'eradone':startTurn(firstActive());break;
+  case 'add':if(S.chosen.length<PH[S.players[S.pi].life.phase].ap)S.chosen.push(el.dataset.k);break;
+  case 'rm':S.chosen.splice(+el.dataset.i,1);break;
+  case 'lock':{const life=S.players[S.pi].life;beginPhase(life,S.chosen);S.evRes=null;S.view='event';break;}
+  case 'evchoice':{const life=S.players[S.pi].life;resolveEvent(life,+el.dataset.i);S.evRes=life.cur.events[life.cur.events.length-1];break;}
+  case 'evnext':{const life=S.players[S.pi].life;S.evRes=null;if(!currentEvent(life)){S.rep=finishPhase(life);S.view='report';}break;}
+  case 'after':{
+   const nxt=S.players.findIndex((q,i)=>i>S.pi&&!q.life.done&&q.life.phase===S.round);
+   if(nxt>=0)startTurn(nxt);
+   else if(S.players.some(q=>!q.life.done))S.view='summary';else S.view='final';break;}
+  case 'nextround':S.round++;S.view='council';
+   if(S.round>5||firstActive()<0){S.view='final';}break;
+  case 'lab':S.view='lab';break;
+  case 'labrun':{readLab();LAB.res=null;const rows=runLab(polFrom(),LAB.n,LAB.cohort);LAB.res={n:LAB.n,stats:labStats(rows)};break;}
+  case 'labtiming':{readLab();const n=LAB.n,c=LAB.cohort;const sc=[['No policy',{}],['Early package: early-life investment, universal health cover, girls’ schooling, from birth',{child:0,uhc:0,girls:0}],['Late package: pension, long-term care, health cover, from age 60',{pension:4,ltc:4,uhc:4}]];
+   LAB.timing=sc.map(([name,p])=>({name,s:labStats(runLab(p,n,c))}));break;}
+ }
+ render();
+}
+function readLab(){const g=id=>document.getElementById(id);if(g('ln'))LAB.n=+g('ln').value;if(g('lc'))LAB.cohort=g('lc').value;if(g('la'))LAB.at=+g('la').value;document.querySelectorAll('[data-pol]').forEach(c=>LAB.pol[c.dataset.pol]=c.checked);}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&!b.disabled)act(b.dataset.a,b);});
+document.addEventListener('change',e=>{
+ if(S.view==='setup'&&['np','allocMode'].includes(e.target.id)){saveSetupInputs();if(e.target.id==='np'){S.n=+e.target.value;}else{S.allocMode=e.target.value;}render();}
+ else if(e.target.matches('[data-pol]')){readLab();render();}
+ else if(S.view==='lab'&&['ln','lc','la'].includes(e.target.id)){readLab();render();}
+});
+restoreState();
+render();
+</script>
+
+</body></html>
